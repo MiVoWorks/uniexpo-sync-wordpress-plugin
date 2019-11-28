@@ -40,6 +40,13 @@ function UniExpoMenu(){
 	include_once('form.php');
 }
 
+/*add_action('admin_menu','my_admin_plugin');
+
+function my_admin_plugin() {
+    wp_register_script( 'my_plugin_script', plugins_url('/my_plugin.js', __FILE__), array('jquery'));
+    wp_enqueue_script( 'my_plugin_script' );
+}*/
+
 /**
  * Currently plugin version.
  * Start at version 1.0.0 and use SemVer - https://semver.org
