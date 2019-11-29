@@ -30,6 +30,10 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
+
+/**
+ * Add UniExpo menu in Admin navigation
+ */
 add_action("admin_menu","addMenu");
 
 function addMenu(){
@@ -39,6 +43,40 @@ function addMenu(){
 function UniExpoMenu(){
 	include_once('form.php');
 }
+
+/**
+ * Synchronize posts on publish new post
+ */
+/*add_action('publish_post', 'onPostPublish');
+
+function onPostPublish(){
+	$url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/post?documentId=100";
+   
+
+    $response = wp_remote_post($url, array(
+      'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
+      'body'        => array(),
+      'method'      => 'POST',
+      'data_format' => 'body',
+  ));
+
+  if ( is_wp_error( $response ) ) {
+    $error_message = $response->get_error_message();
+    echo "Something went wrong: $error_message";
+  } else {
+      echo 'Response:<pre>';
+      print_r( $response );
+      echo '</pre>';
+  }
+}*/
+
+function action_publish_post( $post ) { 
+	//$postID = $post->ID; 
+	//print_r($post);
+}; 
+add_action( 'publish_post', 'action_publish_post', 10, 1 );
+
+
 
 /*add_action('admin_menu','my_admin_plugin');
 

@@ -17,6 +17,64 @@
     }
   }
 
+  /* Echo variable
+ * Description: Uses <pre> and print_r to display a variable in formated fashion
+ */
+function echo_log( $what )
+{
+    echo '<pre>'.print_r( $what, true ).'</pre>';
+}
+
+
+function wpDataToFirestoreData($data){
+  $postData = array(  
+    'fields' => array(),
+    
+  );
+
+  foreach ($data as $key => $value){  
+    $postData['fields'][$key]=array("stringValue"=>$value.""); 
+   } 
+
+return $postData; //TODO MODIFIED
+
+
+
+}
+
+  function sendDataToFirestore($data){
+    $postData=wpDataToFirestoreData($data);
+    
+    $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$data['post_type']."?documentId=".$data['id'];
+    echo_log($url);
+
+    $response = wp_remote_post($url, array(
+      'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
+      'body'        => json_encode($postData),
+      'method'      => 'POST',
+      'data_format' => 'body',
+  ));
+
+  if ( is_wp_error( $response ) ) {
+    $error_message = $response->get_error_message();
+    echo "Something went wrong: $error_message";
+  } else {
+      echo 'Response:<pre>';
+      print_r( $response );
+      echo '</pre>';
+  }
+  }
+
+  /*function getPostsByType($post_type){
+    if(is_array($post_type)){
+      //do sth
+    }else{
+      $args = array(  
+        'post_type' => $post_type
+      );
+    }
+  }*/
+
   if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if(empty($_POST["post_types"])){
       $post_types = get_option('post_types_array');
@@ -53,15 +111,13 @@
       }
     }
     $actionStatus=1;
-  
-    $projectid = get_option('firebase_projectid');
-    $url = "https://firestore.googleapis.com/v1/projects/".$projectid."/databases/(default)/documents/cities/LA";
-    $response = wp_remote_post( $url, $args = array(
-        'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
-        'body'        => json_encode(),
-        'method'      => 'POST',
-        'data_format' => 'body',
-    ));
+    //sendDataToFirestore(array("name"=>"My Post name","id"=>13,"author"=>"Daniel","post_type"=>"post"));
+    
+    //print_r(get_post("1"));
+
+    //getPostsByType(get_option('post_types_array'));
+    
+
   }
 ?>
 <div class="wrap">
