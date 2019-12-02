@@ -44,37 +44,42 @@ function UniExpoMenu(){
 	include_once('form.php');
 }
 
+
+function wpDataToFirestoreData($data){
+  $postData = array(  
+    'fields' => array(),
+  );
+
+  foreach ($data as $key => $value){  
+    $postData['fields'][$key]=array("stringValue"=>$value.""); 
+   } 
+
+  return $postData; //TODO MODIFIED 
+}
+
+function sendDataToFirestore($data){
+  $postData=wpDataToFirestoreData($data);
+  
+  $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$data['post_type']."?documentId=".$data['id'];
+  
+  wp_remote_post($url, array(
+    'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
+    'body'        => json_encode($postData),
+    'method'      => 'POST',
+    'data_format' => 'body',
+  ));
+
+}
 /**
  * Synchronize posts on publish new post
  */
-/*add_action('publish_post', 'onPostPublish');
-
-function onPostPublish(){
-	$url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/post?documentId=100";
-   
-
-    $response = wp_remote_post($url, array(
-      'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
-      'body'        => array(),
-      'method'      => 'POST',
-      'data_format' => 'body',
-  ));
-
-  if ( is_wp_error( $response ) ) {
-    $error_message = $response->get_error_message();
-    echo "Something went wrong: $error_message";
-  } else {
-      echo 'Response:<pre>';
-      print_r( $response );
-      echo '</pre>';
-  }
-}*/
-
-function action_publish_post( $post ) { 
-	//$postID = $post->ID; 
-	//print_r($post);
+function action_publish_post( $post_id, $post ) { 
+  //$postID = $post->ID; 
+  
+  sendDataToFirestore(array("name"=>$post->post_title,"id"=>$post_id,"author"=>"Dimitar","post_type"=>$post->post_type));
 }; 
-add_action( 'publish_post', 'action_publish_post', 10, 1 );
+//add_action( 'publish_post', 'action_publish_post', 10, 1 );
+add_action('publish_post', 'action_publish_post', 10, 2);
 
 
 
