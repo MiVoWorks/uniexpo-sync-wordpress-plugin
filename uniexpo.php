@@ -70,13 +70,16 @@ function sendDataToFirestore($data){
   ));
 
 }
+
+
 /**
  * Synchronize posts on publish new post
  */
 function action_publish_post( $post_id, $post ) { 
   //$postID = $post->ID; 
   
-  sendDataToFirestore(array("name"=>$post->post_title,"id"=>$post_id,"author"=>"Dimitar","post_type"=>$post->post_type));
+  $author = get_userdata($post->post_author);
+  sendDataToFirestore(array("name"=>$post->post_title,"id"=>$post_id,"author"=>$author->display_name,"post_type"=>$post->post_type));
 }; 
 //add_action( 'publish_post', 'action_publish_post', 10, 1 );
 add_action('publish_post', 'action_publish_post', 10, 2);
