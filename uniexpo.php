@@ -42,8 +42,16 @@ function wpDataToFirestoreData($data){
   return $postData; //TODO MODIFIED 
 }
 
+/**
+ * @param {Array} data - Array Representation of the POST
+ */
 function sendDataToFirestore($data){
-  $postData=wpDataToFirestoreData($data);
+  
+  $postMeta=get_post_meta($data['ID']);
+
+   
+
+  $postData=wpDataToFirestoreData($postMeta->_thumbnail_id);
   
   $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$data['post_type']."?documentId=".$data['ID'];
   
@@ -67,8 +75,17 @@ function action_publish_post( $post_id, $post ) {
   //sendDataToFirestore(array("name"=>$post->post_title,"id"=>$post_id,"author"=>$author->display_name,"post_type"=>$post->post_type));
   sendDataToFirestore((array) $post);
 }; 
+
+
+function subscribeToDifferentPostTypes($postTypes){
+  foreach ($postTypes as $key => $type) {
+    add_action('publish_'.$type, 'action_publish_post', 10, 2);
+    add_action('update_'.$type, 'action_publish_post', 10, 2);
+  }
+}
+subscribeToDifferentPostTypes(['post','event']);
 //add_action( 'publish_post', 'action_publish_post', 10, 1 );
-add_action('publish_post', 'action_publish_post', 10, 2);
+
 
 
 
