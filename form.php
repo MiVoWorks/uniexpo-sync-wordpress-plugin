@@ -24,47 +24,6 @@ function echo_log( $what )
 {
     echo '<pre>'.print_r( $what, true ).'</pre>';
 }
-
-
-function wpDataToFirestoreData($data){
-  $postData = array(  
-    'fields' => array(),
-    
-  );
-
-  foreach ($data as $key => $value){  
-    $postData['fields'][$key]=array("stringValue"=>$value.""); 
-   } 
-
-return $postData; //TODO MODIFIED
-
-
-
-}
-
-  function sendDataToFirestore($data){
-    $postData=wpDataToFirestoreData($data);
-    
-    $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$data['post_type']."?documentId=".$data['id'];
-    echo_log($url);
-
-    $response = wp_remote_post($url, array(
-      'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
-      'body'        => json_encode($postData),
-      'method'      => 'POST',
-      'data_format' => 'body',
-  ));
-
-  if ( is_wp_error( $response ) ) {
-    $error_message = $response->get_error_message();
-    echo "Something went wrong: $error_message";
-  } else {
-      echo 'Response:<pre>';
-      print_r( $response );
-      echo '</pre>';
-  }
-  }
-
   /*function getPostsByType($post_type){
     if(is_array($post_type)){
       //do sth

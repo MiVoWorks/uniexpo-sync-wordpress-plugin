@@ -30,21 +30,6 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
-
-/**
- * Add UniExpo menu in Admin navigation
- */
-add_action("admin_menu","addMenu");
-
-function addMenu(){
-    add_menu_page("UniExpo Plugin","UniExpo",4,"uniexpo-plugin","UniExpoMenu","dashicons-smartphone",110);
-}
-
-function UniExpoMenu(){
-	include_once('form.php');
-}
-
-
 function wpDataToFirestoreData($data){
   $postData = array(  
     'fields' => array(),
@@ -60,7 +45,7 @@ function wpDataToFirestoreData($data){
 function sendDataToFirestore($data){
   $postData=wpDataToFirestoreData($data);
   
-  $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$data['post_type']."?documentId=".$data['id'];
+  $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$data['post_type']."?documentId=".$data['ID'];
   
   wp_remote_post($url, array(
     'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
@@ -79,7 +64,8 @@ function action_publish_post( $post_id, $post ) {
   //$postID = $post->ID; 
   
   $author = get_userdata($post->post_author);
-  sendDataToFirestore(array("name"=>$post->post_title,"id"=>$post_id,"author"=>$author->display_name,"post_type"=>$post->post_type));
+  //sendDataToFirestore(array("name"=>$post->post_title,"id"=>$post_id,"author"=>$author->display_name,"post_type"=>$post->post_type));
+  sendDataToFirestore((array) $post);
 }; 
 //add_action( 'publish_post', 'action_publish_post', 10, 1 );
 add_action('publish_post', 'action_publish_post', 10, 2);
@@ -92,6 +78,19 @@ function my_admin_plugin() {
     wp_register_script( 'my_plugin_script', plugins_url('/my_plugin.js', __FILE__), array('jquery'));
     wp_enqueue_script( 'my_plugin_script' );
 }*/
+
+/**
+ * Add UniExpo menu in Admin navigation
+ */
+add_action("admin_menu","addMenu");
+
+function addMenu(){
+    add_menu_page("UniExpo Plugin","UniExpo",4,"uniexpo-plugin","UniExpoMenu","dashicons-smartphone",110);
+}
+
+function UniExpoMenu(){
+	include_once('form.php');
+}
 
 /**
  * Currently plugin version.
