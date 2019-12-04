@@ -30,6 +30,13 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
+function debug_func($data,$file="debug"){
+  $myfile = fopen(__DIR__ .'/debug/'.$file.'.txt', 'w');
+  //fwrite($myfile, json_encode( (array)$data ));
+  fwrite($myfile, json_encode( $data ));
+  fclose($myfile);
+}
+
 function wpDataToFirestoreData($data){
   $postData = array(  
     'fields' => array(),
@@ -42,16 +49,32 @@ function wpDataToFirestoreData($data){
   return $postData; //TODO MODIFIED 
 }
 
+function saveCategories(){
+  global $wpdb;
+  
+  $query = "SELECT * FROM {$wpdb->prefix}terms INNER JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}terms.term_id={$wpdb->prefix}term_taxonomy.term_id";
+  $results = $wpdb->get_results($query);
+
+  foreach ($results as $key => $element) {
+    sendDataToFirestore(array(
+      'post_type'   =>$element->taxonomy,
+      'ID'          =>$element->term_id,
+      'name'        =>$element->name,
+    ));
+  }
+  return $results;
+}
+
+//debug_func(saveCategories(),"debug4");
+
+
 /**
  * @param {Array} data - Array Representation of the POST
  */
 function sendDataToFirestore($data){
   
-  $postMeta=get_post_meta($data['ID']);
-
-   
-
-  $postData=wpDataToFirestoreData($postMeta->_thumbnail_id);
+  //$postMeta=get_post_meta($data['ID']);
+  $postData=wpDataToFirestoreData($data);
   
   $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$data['post_type']."?documentId=".$data['ID'];
   
@@ -85,9 +108,6 @@ function subscribeToDifferentPostTypes($postTypes){
 }
 subscribeToDifferentPostTypes(['post','event']);
 //add_action( 'publish_post', 'action_publish_post', 10, 1 );
-
-
-
 
 /*add_action('admin_menu','my_admin_plugin');
 
