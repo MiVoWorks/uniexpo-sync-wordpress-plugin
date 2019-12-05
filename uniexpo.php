@@ -46,7 +46,7 @@ function wpDataToFirestoreData($data){
     $postData['fields'][$key]=array("stringValue"=>$value.""); 
    } 
 
-  return $postData; //TODO MODIFIED 
+  return $postData;
 }
 
 function saveCategories(){
@@ -86,12 +86,12 @@ function saveCategories(){
   }
 }
 
-saveCategories();
+//saveCategories();
 
 /**
  * @param {Array} data - Array Representation of the POST
  */
-function sendDataToFirestore($postData,$shouldIDoAConversion=true,$type,$id){
+function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, $action_type){
   
   //$postMeta=get_post_meta($data['ID']);
   if($shouldIDoAConversion){
@@ -100,35 +100,94 @@ function sendDataToFirestore($postData,$shouldIDoAConversion=true,$type,$id){
     $postData=wpDataToFirestoreData($postData);
   }
   
+  //if publish post
+  if($action_type == "publish"){
+    $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$type."?documentId=".$id;
   
-  $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$type."?documentId=".$id;
+    wp_remote_post($url, array(
+      'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
+      'body'        => json_encode($postData),
+      'method'      => 'POST',
+      'data_format' => 'body',
+    ));
+  //if update post
+  }else if($action_type == "update"){
+    $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$type."/".$id;
   
-  wp_remote_post($url, array(
-    'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
-    'body'        => json_encode($postData),
-    'method'      => 'POST',
-    'data_format' => 'body',
-  ));
-
+    wp_remote_post($url, array(
+      'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
+      'body'        => json_encode($postData),
+      'method'      => 'PATCH',
+      'data_format' => 'body',
+    ));
+  }
 }
 
 
 /**
- * Synchronize posts on publish new post
+ * Synchronize post on publish new post
  */
 function action_publish_post( $post_id, $post ) { 
-  //$postID = $post->ID; 
+
+  debug_func($post,'event');
   
-  $author = get_userdata($post->post_author);
-  //sendDataToFirestore(array("name"=>$post->post_title,"id"=>$post_id,"author"=>$author->display_name,"post_type"=>$post->post_type));
-  sendDataToFirestore((array) $post, true, $post->post_type, $post_id );
+  //if is ID of author return his display name
+  if(intval($post->post_author)){
+    $author = get_userdata($post->post_author);
+    $post->post_author = $author->display_name;
+  }
+
+  global $wpdb;
+  $query = "SELECT categories.name FROM (SELECT {$wpdb->prefix}terms.term_id, {$wpdb->prefix}terms.name, {$wpdb->prefix}term_taxonomy.taxonomy 
+            FROM {$wpdb->prefix}terms 
+            INNER JOIN {$wpdb->prefix}term_taxonomy 
+            ON {$wpdb->prefix}terms.term_id={$wpdb->prefix}term_taxonomy.term_id) categories
+            INNER JOIN {$wpdb->prefix}term_relationships
+            ON {$wpdb->prefix}term_relationships.term_taxonomy_id=categories.term_id 
+            AND {$wpdb->prefix}term_relationships.object_id=".$post_id;
+
+  $category_name = $wpdb->get_results($query);
+  $post->category_name = $category_name[0]->name;
+
+  sendDataToFirestore((array) $post, true, $post->post_type, $post_id, "publish");
 }; 
+
+/**
+ * Synchronize post on update post
+ */
+function action_update_post($post_id, $post){
+
+  debug_func($post,'eventu');
+  //if is ID of author return his display name
+  if(intval($post->post_author)){
+    $author = get_userdata($post->post_author);
+    $post->post_author = $author->display_name;
+  }
+  
+  global $wpdb;
+  $query = "SELECT categories.name FROM (SELECT {$wpdb->prefix}terms.term_id, {$wpdb->prefix}terms.name, {$wpdb->prefix}term_taxonomy.taxonomy 
+            FROM {$wpdb->prefix}terms 
+            INNER JOIN {$wpdb->prefix}term_taxonomy 
+            ON {$wpdb->prefix}terms.term_id={$wpdb->prefix}term_taxonomy.term_id) categories
+            INNER JOIN {$wpdb->prefix}term_relationships
+            ON {$wpdb->prefix}term_relationships.term_taxonomy_id=categories.term_id 
+            AND {$wpdb->prefix}term_relationships.object_id=".$post_id;
+
+  $category_name = $wpdb->get_results($query);
+  $post->category_name = $category_name[0]->name;
+  
+  sendDataToFirestore((array) $post, true, $post->post_type, $post_id, "update");
+}
 
 
 function subscribeToDifferentPostTypes($postTypes){
   foreach ($postTypes as $key => $type) {
+    //on post publish
     add_action('publish_'.$type, 'action_publish_post', 10, 2);
-    add_action('update_'.$type, 'action_publish_post', 10, 2);
+    //add_action('update_'.$type, 'action_update_post', 10, 2);
+
+    //on post update
+    add_action('save_'.$type, 'action_update_post', 10, 3);
   }
 }
 subscribeToDifferentPostTypes(['post','event']);
