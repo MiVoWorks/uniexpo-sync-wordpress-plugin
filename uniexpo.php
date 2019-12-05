@@ -52,31 +52,56 @@ function wpDataToFirestoreData($data){
 function saveCategories(){
   global $wpdb;
   
-  $query = "SELECT * FROM {$wpdb->prefix}terms INNER JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}terms.term_id={$wpdb->prefix}term_taxonomy.term_id";
-  $results = $wpdb->get_results($query);
+  //$query = "SELECT * FROM {$wpdb->prefix}terms INNER JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}terms.term_id={$wpdb->prefix}term_taxonomy.term_id";
+  $query = "SELECT {$wpdb->prefix}terms.term_id, {$wpdb->prefix}terms.name, {$wpdb->prefix}term_taxonomy.taxonomy FROM {$wpdb->prefix}terms INNER JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}terms.term_id={$wpdb->prefix}term_taxonomy.term_id";
+  $categories = $wpdb->get_results($query);
 
-  foreach ($results as $key => $element) {
-    sendDataToFirestore(array(
-      'post_type'   =>$element->taxonomy,
-      'ID'          =>$element->term_id,
-      'name'        =>$element->name,
-    ));
+  //New JOIN
+  $query = "SELECT * FROM (SELECT categories_meta.term_id, categories_meta.name, categories_meta.taxonomy, categories_meta.meta_key, categories_meta.meta_value, {$wpdb->prefix}posts.guid FROM 
+            (SELECT categories.term_id, categories.name, categories.taxonomy, {$wpdb->prefix}termmeta.meta_key, {$wpdb->prefix}termmeta.meta_value FROM 
+            (SELECT {$wpdb->prefix}terms.term_id, {$wpdb->prefix}terms.name, {$wpdb->prefix}term_taxonomy.taxonomy FROM {$wpdb->prefix}terms 
+            INNER JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}terms.term_id={$wpdb->prefix}term_taxonomy.term_id) categories
+            LEFT JOIN {$wpdb->prefix}termmeta ON categories.term_id={$wpdb->prefix}termmeta.term_id) categories_meta
+            LEFT JOIN {$wpdb->prefix}posts ON categories_meta.meta_value={$wpdb->prefix}posts.ID
+            ORDER BY term_id) a WHERE meta_value IS NOT NULL";
+  
+  $meta_categories = $wpdb->get_results($query);
+
+  foreach ($meta_categories as $key => $element) {
+    foreach($categories as $new_key => $new_element){
+      if($element->term_id == $new_element->term_id){
+        $meta_key = $element->meta_key;
+        if($element->guid != null){
+          $categories[$new_key]->$meta_key = $element->guid;
+        }else{
+          $categories[$new_key]->$meta_key = $element->meta_value;
+        }
+       
+      }
+    }
   }
-  return $results;
+
+  foreach ($categories as $key => $element) {
+    sendDataToFirestore(wpDataToFirestoreData($element),false,$element->taxonomy,$element->term_id);
+  }
 }
 
-//debug_func(saveCategories(),"debug4");
-
+saveCategories();
 
 /**
  * @param {Array} data - Array Representation of the POST
  */
-function sendDataToFirestore($data){
+function sendDataToFirestore($postData,$shouldIDoAConversion=true,$type,$id){
   
   //$postMeta=get_post_meta($data['ID']);
-  $postData=wpDataToFirestoreData($data);
+  if($shouldIDoAConversion){
+    $type=$postData['post_type'];
+    $id=$postData['ID'];
+    $postData=wpDataToFirestoreData($postData);
+  }
   
-  $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$data['post_type']."?documentId=".$data['ID'];
+  
+  $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$type."?documentId=".$id;
   
   wp_remote_post($url, array(
     'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
@@ -96,7 +121,7 @@ function action_publish_post( $post_id, $post ) {
   
   $author = get_userdata($post->post_author);
   //sendDataToFirestore(array("name"=>$post->post_title,"id"=>$post_id,"author"=>$author->display_name,"post_type"=>$post->post_type));
-  sendDataToFirestore((array) $post);
+  sendDataToFirestore((array) $post, true, $post->post_type, $post_id );
 }; 
 
 
