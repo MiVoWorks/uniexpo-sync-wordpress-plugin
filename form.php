@@ -13,13 +13,16 @@
   <script>
   $( function() {
       var currentPostTypes = '<?php echo get_option('post_types_array'); ?>';
-      if(Array.isArray(currentPostTypes)){
+      //Array.isArray(currentPostTypes)
+      /*if(Array.isArray(currentPostTypes)){
         currentPostTypes.forEach(function(postType){
           $("li[name*="+postType+"]").addClass("ui-selected");
         })
       }else{
         $("li[name*="+currentPostTypes+"]").addClass("ui-selected");
-      }
+      }*/
+      
+      alert('<?php echo json_encode( unserialize( $currentPostTypes)); ?>')
 
       var postTypesArray = [];
       $(".ui-widget-content").click( function() {
@@ -121,8 +124,14 @@ function echo_log( $what )
         update_option('firebase_appid', $_POST["appid"]);
         update_option('firebase_authdomain', $_POST["projectid"] . ".firebaseapp.com");
         update_option('firebase_databaseurl', "https://" . $_POST["projectid"] . ".firebaseio.com");
-
-        update_option('post_types_array', $_COOKIE["postTypesArray"]);
+        
+        if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
+          update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
+          //$post_types = implode(",",get_option('post_types_array'));
+        }else{
+          update_option('post_types_array',$_COOKIE["postTypesArray"]);
+          //$post_types = get_option('post_types_array');
+        }
       }else{
         add_option('firebase_apikey', $_POST["apikey"]);
         add_option('firebase_projectid', $_POST["projectid"]);
@@ -135,7 +144,7 @@ function echo_log( $what )
           //$post_types = implode(",",get_option('post_types_array'));
         }else{
           update_option('post_types_array',$_COOKIE["postTypesArray"]);
-          $post_types = get_option('post_types_array');
+          //$post_types = get_option('post_types_array');
         }
       }
     
