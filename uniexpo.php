@@ -123,6 +123,22 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
   }
 }
 
+/*add_action( 'init', 'wpse34410_init', 0, 99 );
+  function wpse34410_init() 
+  {
+      $arrayTypes = array();
+      $types = get_post_types( [], 'objects' );
+      foreach ( $types as $type ) {
+          if ( isset( $type->name ) ) {
+              // you'll probably want to do something else.
+             // debug_func($type->name,"data".$type->name);
+             array_push($arrayTypes, $type->name);
+          }
+      }
+
+      debug_func($arrayTypes,"data");
+     
+  }*/
 
 /**
  * Synchronize post on publish new post
