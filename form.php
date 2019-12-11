@@ -12,24 +12,47 @@
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
   <script>
   $( function() {
-      var currentPostTypes = '<?php echo get_option('post_types_array'); ?>';
-      //Array.isArray(currentPostTypes)
-      /*if(Array.isArray(currentPostTypes)){
+      //remove ui-selected class after page reload and then add again.  
+      //$("li").removeClass("ui-selected");
+
+      var currentPostTypes = JSON.parse('<?php echo json_encode(get_option('post_types_array')); ?>');
+
+      var postTypesArray = [];
+      if(Array.isArray(currentPostTypes)){
         currentPostTypes.forEach(function(postType){
+          //add current selected items to array that will be saved in session
+          postTypesArray.push(postType);
+
+          //add class selected
           $("li[name*="+postType+"]").addClass("ui-selected");
         })
       }else{
         $("li[name*="+currentPostTypes+"]").addClass("ui-selected");
-      }*/
-      
-      alert('<?php echo json_encode( unserialize( $currentPostTypes)); ?>')
+      }
 
-      var postTypesArray = [];
+      //var postTypesArray = [];
       $(".ui-widget-content").click( function() {
-        $(this).toggleClass("ui-selected");
-        postTypesArray.push($(this).attr("name"))
-        //localStorage.setItem('postTypesArray', postTypesArray);
-        document.cookie = "postTypesArray="+postTypesArray;
+        //if is selected remove the class and removed it from selected array
+        if($(this).hasClass("ui-selected")){
+          $(this).removeClass("ui-selected");
+
+          //index to remove from array
+          //var index = $("#selectable li").index(this);
+          var newArrayPosTypes = [];
+          for(var i=0; i<postTypesArray.length; i++){
+
+            if(postTypesArray[i] != $(this).attr("name")){
+              newArrayPosTypes.push(postTypesArray[i]);
+            }
+          }
+
+          document.cookie = "postTypesArray="+newArrayPosTypes;
+        }else{
+          $(this).toggleClass("ui-selected");
+          postTypesArray.push($(this).attr("name"))
+          //localStorage.setItem('postTypesArray', postTypesArray);
+          document.cookie = "postTypesArray="+postTypesArray;
+        }        
       });
   } );
   </script>
@@ -159,6 +182,9 @@ function echo_log( $what )
     /*if( isset($_COOKIE["postTypesArray"])){
       debug_funcc($_COOKIE["postTypesArray"],"debug");
     }*/
+    //header("Refresh:0");
+    //header("Location: ".$_SERVER['PHP_SELF']);
+    echo("<meta http-equiv='refresh' content='1'>");
   }
 ?>
 <div class="wrap">
@@ -211,7 +237,7 @@ function echo_log( $what )
             <!--<li class="ui-widget-content">Item 1</li>-->
             <?php if(is_array($arrayTypes)): ?>
               <?php foreach($arrayTypes as $post_type): ?>
-                <li class="ui-widget-content" name=<?php echo $post_type ?>><?php echo $post_type ?></li>
+                <li id="ui-widget" class="ui-widget-content" name=<?php echo $post_type ?>><?php echo $post_type ?></li>
               <?php endforeach; ?>
             <?php else : ?>
               <!--<li class="ui-widget-content"> execute sth here</li>-->
