@@ -44,9 +44,27 @@ function wpDataToFirestoreData($data){
 
   foreach ($data as $key => $value){  
     $postData['fields'][$key]=array("stringValue"=>$value.""); 
-   } 
+   }
+
+   //$postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/category/7");
+  
+   $postCategory = getPostCategory($data['ID']);
+   //collection category reference
+   $postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
 
   return $postData;
+}
+
+function getPostCategory($post_id){
+  global $wpdb;
+
+  $query = "SELECT * FROM (SELECT * FROM(SELECT meta_id,post_id FROM wp_postmeta WHERE post_id=".$post_id.") a
+            INNER JOIN wp_term_relationships ON wp_term_relationships.object_id = a.post_id) b
+            INNER JOIN wp_term_taxonomy ON wp_term_taxonomy.term_taxonomy_id = b.term_taxonomy_id LIMIT 1";
+
+  $category = $wpdb->get_results($query);
+  
+  return $category;
 }
 
 function saveCategories(){
@@ -99,6 +117,8 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
     $id=$postData['ID'];
     $postData=wpDataToFirestoreData($postData);
   }
+
+  debug_func($postData,"postData");
   
   //if publish post
   if($action_type == "publish"){
@@ -145,7 +165,7 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
  */
 function action_publish_post( $post_id, $post ) { 
 
-  debug_func($post,'event');
+  //debug_func($post,'event');
   
   //if is ID of author return his display name
   if(intval($post->post_author)){
@@ -173,7 +193,7 @@ function action_publish_post( $post_id, $post ) {
  */
 function action_update_post($post_id, $post){
 
-  debug_func($post,'eventu');
+  //debug_func($post,'eventu');
   //if is ID of author return his display name
   if(intval($post->post_author)){
     $author = get_userdata($post->post_author);
