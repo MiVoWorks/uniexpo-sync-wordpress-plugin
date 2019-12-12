@@ -117,8 +117,6 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
     $id=$postData['ID'];
     $postData=wpDataToFirestoreData($postData);
   }
-
-  debug_func($postData,"postData");
   
   //if publish post
   if($action_type == "publish"){
@@ -226,15 +224,15 @@ function subscribeToDifferentPostTypes($postTypes){
     add_action('save_'.$type, 'action_update_post', 10, 3);
   }
 }
-subscribeToDifferentPostTypes(['post','event']);
+
+if(get_option('post_types_array')){
+  subscribeToDifferentPostTypes(get_option('post_types_array'));
+}
+
+//subscribeToDifferentPostTypes(['post','event']);
+
+
 //add_action( 'publish_post', 'action_publish_post', 10, 1 );
-
-/*add_action('admin_menu','my_admin_plugin');
-
-function my_admin_plugin() {
-    wp_register_script( 'my_plugin_script', plugins_url('/my_plugin.js', __FILE__), array('jquery'));
-    wp_enqueue_script( 'my_plugin_script' );
-}*/
 
 /**
  * Add UniExpo menu in Admin navigation

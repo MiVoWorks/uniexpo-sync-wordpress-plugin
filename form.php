@@ -15,8 +15,26 @@
       //remove ui-selected class after page reload and then add again.  
       //$("li").removeClass("ui-selected");
 
-      var currentPostTypes = JSON.parse('<?php echo json_encode(get_option('post_types_array')); ?>');
+      /*if(getCookieValueByName("postTypesArray") != null){
+        deleteCookie("postTypesArray");
+        alert(getCookieValueByName("postTypesArray"))
+      }*/
+        
+      function getCookieValueByName(name){
+        var v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+        return v ? v[2] : null;
+      }
 
+      function setCookie(name, value, days) {
+          var d = new Date;
+          d.setTime(d.getTime() + 24*60*60*1000*days);
+          document.cookie = name + "=" + value + ";path=/;expires=" + d.toGMTString();
+      }
+
+      function deleteCookie(name) { setCookie(name, '', -1); }
+
+      var currentPostTypes = JSON.parse('<?php echo json_encode(get_option('post_types_array')); ?>');
+    
       var postTypesArray = [];
       if(Array.isArray(currentPostTypes)){
         currentPostTypes.forEach(function(postType){
@@ -54,7 +72,23 @@
           document.cookie = "postTypesArray="+postTypesArray;
         }        
       });
-  } );
+
+      $('#categories-sync').click(function() {
+          $.ajax({
+            type: "POST",
+            url: "admin.php?page=uniexpo-plugin",
+            data: {'action': "categories-sync"}
+          });
+      });
+
+      $('#posts-sync').click(function() {
+          $.ajax({
+            type: "POST",
+            url: "admin.php?page=uniexpo-plugin",
+            data: {'action': "posts-sync"}
+          });
+      });
+  });
   </script>
 </head>
 <body>  
@@ -105,7 +139,115 @@ function echo_log( $what )
     fclose($myfile);
   }
 
+  function getPostCategory2($post_id){
+    global $wpdb;
+  
+    $query = "SELECT * FROM (SELECT * FROM(SELECT meta_id,post_id FROM wp_postmeta WHERE post_id=".$post_id.") a
+              INNER JOIN wp_term_relationships ON wp_term_relationships.object_id = a.post_id) b
+              INNER JOIN wp_term_taxonomy ON wp_term_taxonomy.term_taxonomy_id = b.term_taxonomy_id LIMIT 1";
+  
+    $category = $wpdb->get_results($query);
+    
+    return $category;
+  }
+
+  function wpDataToFirestoreData2($data){
+    $postData = array(  
+      'fields' => array(),
+    );
+  
+    foreach ($data as $key => $value){  
+      $postData['fields'][$key]=array("stringValue"=>$value.""); 
+     }
+  
+     //$postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/category/7");
+    
+     //$postCategory = getPostCategory2($data['ID']);
+     //collection category reference
+     //$postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
+     
+    return $postData;
+  }
+  
+  function sendDataToFirestore2($postData, $shouldIDoAConversion=true, $type, $id, $action_type){
+  
+    //$postMeta=get_post_meta($data['ID']);
+    if($shouldIDoAConversion){
+      $type=$postData['post_type'];
+      $id=$postData['ID'];
+      $postData=wpDataToFirestoreData2($postData);
+    }
+    
+    //if publish post
+    if($action_type == "publish"){
+      $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$type."?documentId=".$id;
+    
+      wp_remote_post($url, array(
+        'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
+        'body'        => json_encode($postData),
+        'method'      => 'POST',
+        'data_format' => 'body',
+      ));
+    //if update post
+    }else if($action_type == "update"){
+      $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$type."/".$id;
+    
+      wp_remote_post($url, array(
+        'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
+        'body'        => json_encode($postData),
+        'method'      => 'PATCH',
+        'data_format' => 'body',
+      ));
+    }
+  }
+
+  function saveCategories2(){
+    global $wpdb;
+    
+    //$query = "SELECT * FROM {$wpdb->prefix}terms INNER JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}terms.term_id={$wpdb->prefix}term_taxonomy.term_id";
+    $query = "SELECT {$wpdb->prefix}terms.term_id, {$wpdb->prefix}terms.name, {$wpdb->prefix}term_taxonomy.taxonomy FROM {$wpdb->prefix}terms INNER JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}terms.term_id={$wpdb->prefix}term_taxonomy.term_id";
+    $categories = $wpdb->get_results($query);
+
+    //New JOIN
+    $query = "SELECT * FROM (SELECT categories_meta.term_id, categories_meta.name, categories_meta.taxonomy, categories_meta.meta_key, categories_meta.meta_value, {$wpdb->prefix}posts.guid FROM 
+              (SELECT categories.term_id, categories.name, categories.taxonomy, {$wpdb->prefix}termmeta.meta_key, {$wpdb->prefix}termmeta.meta_value FROM 
+              (SELECT {$wpdb->prefix}terms.term_id, {$wpdb->prefix}terms.name, {$wpdb->prefix}term_taxonomy.taxonomy FROM {$wpdb->prefix}terms 
+              INNER JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}terms.term_id={$wpdb->prefix}term_taxonomy.term_id) categories
+              LEFT JOIN {$wpdb->prefix}termmeta ON categories.term_id={$wpdb->prefix}termmeta.term_id) categories_meta
+              LEFT JOIN {$wpdb->prefix}posts ON categories_meta.meta_value={$wpdb->prefix}posts.ID
+              ORDER BY term_id) a WHERE meta_value IS NOT NULL";
+    
+    $meta_categories = $wpdb->get_results($query);
+  
+    foreach ($meta_categories as $key => $element) {
+      foreach($categories as $new_key => $new_element){
+        if($element->term_id == $new_element->term_id){
+          $meta_key = $element->meta_key;
+          if($element->guid != null){
+            $categories[$new_key]->$meta_key = $element->guid;
+          }else{
+            $categories[$new_key]->$meta_key = $element->meta_value;
+          }
+         
+        }
+      }
+    }
+    
+    foreach ($categories as $key => $element) {
+      sendDataToFirestore2(wpDataToFirestoreData2($element),false,$element->taxonomy,$element->term_id,"publish");
+    }
+  
+  }
+
   if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    if($_POST["action"] == "categories-sync"){
+      saveCategories2();
+    }else if($_POST["action"] == "posts-sync"){
+      debug_funcc("posts","posts");
+    }else{
+      debug_funcc("other","other");
+    }
+    
     /*if(empty($_POST["post_types"])){
       $post_types = get_option('post_types_array');
     }else{
@@ -148,13 +290,17 @@ function echo_log( $what )
         update_option('firebase_authdomain', $_POST["projectid"] . ".firebaseapp.com");
         update_option('firebase_databaseurl', "https://" . $_POST["projectid"] . ".firebaseio.com");
         
-        if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
+        if(get_option('post_types_array') || $_COOKIE["postTypesArray"]){
+          /*if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
+            update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
+            //$post_types = implode(",",get_option('post_types_array'));
+          }else{
+            update_option('post_types_array',$_COOKIE["postTypesArray"]);
+            //$post_types = get_option('post_types_array');
+          }*/
           update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
-          //$post_types = implode(",",get_option('post_types_array'));
-        }else{
-          update_option('post_types_array',$_COOKIE["postTypesArray"]);
-          //$post_types = get_option('post_types_array');
         }
+        
       }else{
         add_option('firebase_apikey', $_POST["apikey"]);
         add_option('firebase_projectid', $_POST["projectid"]);
@@ -162,12 +308,15 @@ function echo_log( $what )
         add_option('firebase_authdomain', $_POST["projectid"] . ".firebaseapp.com");
         add_option('firebase_databaseurl', "https://" . $_POST["projectid"] . ".firebaseio.com");
 
-        if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
+        if(get_option('post_types_array') || $_COOKIE["postTypesArray"]){
+          /*if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
+            update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
+            //$post_types = implode(",",get_option('post_types_array'));
+          }else{
+            update_option('post_types_array',$_COOKIE["postTypesArray"]);
+            //$post_types = get_option('post_types_array');
+          }*/
           update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
-          //$post_types = implode(",",get_option('post_types_array'));
-        }else{
-          update_option('post_types_array',$_COOKIE["postTypesArray"]);
-          //$post_types = get_option('post_types_array');
         }
       }
     
@@ -184,6 +333,8 @@ function echo_log( $what )
     }*/
     //header("Refresh:0");
     //header("Location: ".$_SERVER['PHP_SELF']);
+    //
+    //debug_funcc($_COOKIE["postTypesArray"],"test");
     echo("<meta http-equiv='refresh' content='1'>");
   }
 ?>
@@ -225,6 +376,7 @@ function echo_log( $what )
       </tr>
     </table> 
     <br/>
+    <?php if(get_option('firebase_projectid')): ?>
     <h2>Sync Settings</h2>
     <hr/>
     <table class="form-table" role="presentation">
@@ -246,7 +398,20 @@ function echo_log( $what )
           <p class="description" id="tagline-description">Select one of the post types below.</p>
         </td>
       </tr>
+    </table>
+    <table class="form-table" role="presentation">
+      <tr>
+        <th scope="row">
+          <label for="blogname">Additional options</label>
+        </th>
+        <td>
+          <input type="button" id="categories-sync" class="button button-info" value="Full Categories Sync" />
+          <input type="button" id="posts-sync" class="button button-info" value="Full Posts Sync" />
+        </td>
+      </tr>
     </table> 
+    <br/>
+    <?php endif; ?>
     <p class="submit"><input type="submit" name="submit" id="submit" class="button button-primary" value="Save Changes"  /></p>
   </form>
 </div>
