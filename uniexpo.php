@@ -46,11 +46,9 @@ function wpDataToFirestoreData($data){
     $postData['fields'][$key]=array("stringValue"=>$value.""); 
    }
 
-   //$postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/category/7");
-  
-   $postCategory = getPostCategory($data['ID']);
+   //$postCategory = getPostCategory($data['ID']);
    //collection category reference
-   $postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
+   //$postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
 
   return $postData;
 }
@@ -100,7 +98,7 @@ function saveCategories(){
   }
 
   foreach ($categories as $key => $element) {
-    sendDataToFirestore(wpDataToFirestoreData($element),false,$element->taxonomy,$element->term_id);
+    sendDataToFirestore(wpDataToFirestoreData($element),false,$element->taxonomy,$element->term_id, true);
   }
 }
 
@@ -108,14 +106,23 @@ function saveCategories(){
 
 /**
  * @param {Array} data - Array Representation of the POST
+ * @param {Boolean} shouldIDoAConversion
+ * @param {String} action_type - fetched if publish or update in firestore
+ * @param {Boolean} isCategory - check if category -> categories don't have reference value
  */
-function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, $action_type){
+function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, $action_type, $isCategory){
   
   //$postMeta=get_post_meta($data['ID']);
   if($shouldIDoAConversion){
     $type=$postData['post_type'];
     $id=$postData['ID'];
     $postData=wpDataToFirestoreData($postData);
+  }
+
+  if(!$isCategory){
+    $postCategory = getPostCategory($postData["fields"]["ID"]['stringValue']);
+    //collection category reference
+    $postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
   }
   
   //if publish post
@@ -183,7 +190,7 @@ function action_publish_post( $post_id, $post ) {
   $category_name = $wpdb->get_results($query);
   $post->category_name = $category_name[0]->name;
 
-  sendDataToFirestore((array) $post, true, $post->post_type, $post_id, "publish");
+  sendDataToFirestore((array) $post, true, $post->post_type, $post_id, "publish", false);
 }; 
 
 /**
@@ -210,19 +217,31 @@ function action_update_post($post_id, $post){
   $category_name = $wpdb->get_results($query);
   $post->category_name = $category_name[0]->name;
   
-  sendDataToFirestore((array) $post, true, $post->post_type, $post_id, "update");
+  sendDataToFirestore((array) $post, true, $post->post_type, $post_id, "update", false);
 }
 
 
 function subscribeToDifferentPostTypes($postTypes){
-  foreach ($postTypes as $key => $type) {
-    //on post publish
-    add_action('publish_'.$type, 'action_publish_post', 10, 2);
-    //add_action('update_'.$type, 'action_update_post', 10, 2);
-
-    //on post update
-    add_action('save_'.$type, 'action_update_post', 10, 3);
+  //check if postTypes is array
+  if(is_array($postTypes)){
+    foreach ($postTypes as $key => $type) {
+      //on post publish
+      add_action('publish_'.$type, 'action_publish_post', 10, 2);
+      //add_action('update_'.$type, 'action_update_post', 10, 2);
+  
+      //on post update
+      add_action('save_'.$type, 'action_update_post', 10, 3);
+    }
+  //check if postTypes is string -> only one postTypes
+  }else{
+     //on post publish
+     add_action('publish_'.$postTypes, 'action_publish_post', 10, 2);
+     //add_action('update_'.$type, 'action_update_post', 10, 2);
+ 
+     //on post update
+     add_action('save_'.$postTypes, 'action_update_post', 10, 3);
   }
+  
 }
 
 if(get_option('post_types_array')){

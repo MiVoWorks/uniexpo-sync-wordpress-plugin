@@ -36,16 +36,18 @@
       var currentPostTypes = JSON.parse('<?php echo json_encode(get_option('post_types_array')); ?>');
     
       var postTypesArray = [];
-      if(Array.isArray(currentPostTypes)){
-        currentPostTypes.forEach(function(postType){
-          //add current selected items to array that will be saved in session
-          postTypesArray.push(postType);
+      if(currentPostTypes.length){ 
+        if(Array.isArray(currentPostTypes) && currentPostTypes.length){
+          currentPostTypes.forEach(function(postType){
+            //add current selected items to array that will be saved in session
+            postTypesArray.push(postType);
 
-          //add class selected
-          $("li[name*="+postType+"]").addClass("ui-selected");
-        })
-      }else{
-        $("li[name*="+currentPostTypes+"]").addClass("ui-selected");
+            //add class selected
+            $("li[name*="+postType+"]").addClass("ui-selected");
+          })
+        }else{
+          $("li[name*="+currentPostTypes+"]").addClass("ui-selected");
+        }
       }
 
       //var postTypesArray = [];
@@ -73,12 +75,15 @@
         }        
       });
 
-      $('#categories-sync').click(function() {
-          $.ajax({
-            type: "POST",
-            url: "admin.php?page=uniexpo-plugin",
-            data: {'action': "categories-sync"}
-          });
+      $("#categories-sync").change(function() {
+          if(this.checked) {
+            var value = $("#categories-sync").val();
+              $.ajax({
+                type: "POST",
+                url: "admin.php?page=uniexpo-plugin",
+                data: {'action': value}
+              });
+          }
       });
 
       $('#posts-sync').click(function() {
@@ -104,7 +109,8 @@
     }
   }
   
-  $actionStatus=0;
+  $actionStatus = 0;
+  $actionCategoriesSyncStatus = 0;
   $post_types = get_option('post_types_array');
   /*if(empty(get_option('post_types_array'))){
     add_option('post_types_array', "post");
@@ -159,9 +165,7 @@ function echo_log( $what )
     foreach ($data as $key => $value){  
       $postData['fields'][$key]=array("stringValue"=>$value.""); 
      }
-  
-     //$postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/category/7");
-    
+
      //$postCategory = getPostCategory2($data['ID']);
      //collection category reference
      //$postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
@@ -169,13 +173,19 @@ function echo_log( $what )
     return $postData;
   }
   
-  function sendDataToFirestore2($postData, $shouldIDoAConversion=true, $type, $id, $action_type){
+  function sendDataToFirestore2($postData, $shouldIDoAConversion=true, $type, $id, $action_type, $isCategory){
   
     //$postMeta=get_post_meta($data['ID']);
     if($shouldIDoAConversion){
       $type=$postData['post_type'];
       $id=$postData['ID'];
       $postData=wpDataToFirestoreData2($postData);
+    }
+
+    if(!$isCategory){
+      $postCategory = getPostCategory2($postData["fields"]["ID"]['stringValue']);
+      //collection category reference
+      $postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
     }
     
     //if publish post
@@ -234,7 +244,7 @@ function echo_log( $what )
     }
     
     foreach ($categories as $key => $element) {
-      sendDataToFirestore2(wpDataToFirestoreData2($element),false,$element->taxonomy,$element->term_id,"publish");
+      sendDataToFirestore2(wpDataToFirestoreData2($element),false,$element->taxonomy,$element->term_id,"publish", true);
     }
   
   }
@@ -242,6 +252,7 @@ function echo_log( $what )
   if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if($_POST["action"] == "categories-sync"){
       saveCategories2();
+      $actionCategoriesSyncStatus = 1;
     }else if($_POST["action"] == "posts-sync"){
       debug_funcc("posts","posts");
     }else{
@@ -291,14 +302,13 @@ function echo_log( $what )
         update_option('firebase_databaseurl', "https://" . $_POST["projectid"] . ".firebaseio.com");
         
         if(get_option('post_types_array') || $_COOKIE["postTypesArray"]){
-          /*if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
+          if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
             update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
             //$post_types = implode(",",get_option('post_types_array'));
           }else{
             update_option('post_types_array',$_COOKIE["postTypesArray"]);
             //$post_types = get_option('post_types_array');
-          }*/
-          update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
+          }
         }
         
       }else{
@@ -309,14 +319,13 @@ function echo_log( $what )
         add_option('firebase_databaseurl', "https://" . $_POST["projectid"] . ".firebaseio.com");
 
         if(get_option('post_types_array') || $_COOKIE["postTypesArray"]){
-          /*if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
+          if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
             update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
             //$post_types = implode(",",get_option('post_types_array'));
           }else{
             update_option('post_types_array',$_COOKIE["postTypesArray"]);
             //$post_types = get_option('post_types_array');
-          }*/
-          update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
+          }
         }
       }
     
@@ -343,6 +352,11 @@ function echo_log( $what )
   <?php if($actionStatus==1){ ?>
     <div class="notice notice-success settings-error is-dismissible alert-saved">
     <p>Project Settings Saved!</p>
+  </div>
+  <?php } ?>
+  <?php if($actionCategoriesSyncStatus==1){ ?>
+    <div class="notice notice-success settings-error is-dismissible alert-saved">
+    <p>Categories Synchronized successfully!</p>
   </div>
   <?php } ?>
   <br/>
@@ -399,17 +413,20 @@ function echo_log( $what )
         </td>
       </tr>
     </table>
+    <?php if(!empty(get_option('post_types_array'))): ?>
     <table class="form-table" role="presentation">
       <tr>
         <th scope="row">
           <label for="blogname">Additional options</label>
         </th>
         <td>
-          <input type="button" id="categories-sync" class="button button-info" value="Full Categories Sync" />
-          <input type="button" id="posts-sync" class="button button-info" value="Full Posts Sync" />
+          <input type="checkbox" id="categories-sync" class="button-info" value="categories-sync"> Categories synchronization
+            &nbsp;&nbsp;  
+          <input type="checkbox" id="posts-sync" class="button-info" value="posts-sync"> Full posts synchronization
         </td>
       </tr>
-    </table> 
+    </table>
+    <?php endif; ?>
     <br/>
     <?php endif; ?>
     <p class="submit"><input type="submit" name="submit" id="submit" class="button button-primary" value="Save Changes"  /></p>
