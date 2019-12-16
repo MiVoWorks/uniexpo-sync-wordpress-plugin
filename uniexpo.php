@@ -119,10 +119,11 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
   }
 
   if(!$isCategory){
+    //get post category
     $postStatus = $postData["fields"]["post_status"]['stringValue'];
 
     $postCategory = getPostCategory($postData["fields"]["ID"]['stringValue']);
-      //collection category reference 
+    //collection category reference 
     $postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
   }
  
@@ -158,18 +159,15 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
 
     wp_remote_post($url, array(
       'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
-      //'body'        => json_encode($postData),
-      'method'      => 'DELETE',
-      //'data_format' => 'body',
+      'method'      => 'DELETE'
     ));
+  //works on delete category
   }else if(($action_type == "delete")){
     $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$type."/".$id;
 
     wp_remote_post($url, array(
       'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
-      //'body'        => json_encode($postData),
-      'method'      => 'DELETE',
-      //'data_format' => 'body',
+      'method'      => 'DELETE'
     ));
   }
 }

@@ -53,7 +53,6 @@
         }else{
           $(this).toggleClass("ui-selected");
           postTypesArray.push($(this).attr("name"))
-          //localStorage.setItem('postTypesArray', postTypesArray);
           
           $.ajax({
             type: "POST",
@@ -67,7 +66,6 @@
       });
 
       $("#categories-sync").click(function() {
-          //var value = $("#categories-sync").val();
             $.ajax({
               type: "POST",
               url: "admin.php?page=uniexpo-plugin",
