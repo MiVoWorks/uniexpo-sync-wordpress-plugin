@@ -246,7 +246,13 @@ function echo_log( $what )
     foreach ($categories as $key => $element) {
       sendDataToFirestore2(wpDataToFirestoreData2($element),false,$element->taxonomy,$element->term_id,"publish", true);
     }
-  
+  }
+
+  function getAllPostsByPostType($post_type){
+    global $wpdb;
+
+    $query = "SELECT * FROM {$wpdb->prefix}posts WHERE {$wpdb->prefix}posts.post_type='".$post_type."'";
+    return $wpdb->get_results($query);
   }
 
   if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -254,12 +260,22 @@ function echo_log( $what )
       saveCategories2();
       $actionCategoriesSyncStatus = 1;
     }else if($_POST["action"] == "posts-sync"){
-      debug_funcc("posts","posts");
+      if(is_array($post_types)){
+        foreach ($post_types as $key => $type) {
+          $posts = getAllPostsByPostType($type);
+          foreach ($posts as $post_key => $post){
+            sendDataToFirestore2((array) $post, true, $post->post_type, $post->ID, "publish", false);
+          }
+        }
+      //check if postTypes is string -> only one postTypes
+      }else{
+        $posts = getAllPostsByPostType($post_types);
+        foreach ($posts as $post_key => $post){
+          sendDataToFirestore2((array) $post, true, $post->post_type, $post->ID, "publish", false);
+        }
+      }
     }else{
-      debug_funcc("other","other");
-    }
-    
-    /*if(empty($_POST["post_types"])){
+      /*if(empty($_POST["post_types"])){
       $post_types = get_option('post_types_array');
     }else{
       if(!(empty($_POST["apikey"]) || empty($_POST["projectid"]) || empty($_POST["appid"]))){
@@ -293,42 +309,42 @@ function echo_log( $what )
         }
       }
     }*/
-      if(!(empty($_POST["apikey"]) || empty($_POST["projectid"]) || empty($_POST["appid"]))){
+    if(!(empty($_POST["apikey"]) || empty($_POST["projectid"]) || empty($_POST["appid"]))){
       
-        update_option('firebase_apikey', $_POST["apikey"]);
-        update_option('firebase_projectid', $_POST["projectid"]);
-        update_option('firebase_appid', $_POST["appid"]);
-        update_option('firebase_authdomain', $_POST["projectid"] . ".firebaseapp.com");
-        update_option('firebase_databaseurl', "https://" . $_POST["projectid"] . ".firebaseio.com");
-        
-        if(get_option('post_types_array') || $_COOKIE["postTypesArray"]){
-          if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
-            update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
-            //$post_types = implode(",",get_option('post_types_array'));
-          }else{
-            update_option('post_types_array',$_COOKIE["postTypesArray"]);
-            //$post_types = get_option('post_types_array');
-          }
-        }
-        
-      }else{
-        add_option('firebase_apikey', $_POST["apikey"]);
-        add_option('firebase_projectid', $_POST["projectid"]);
-        add_option('firebase_appid', $_POST["appid"]);
-        add_option('firebase_authdomain', $_POST["projectid"] . ".firebaseapp.com");
-        add_option('firebase_databaseurl', "https://" . $_POST["projectid"] . ".firebaseio.com");
-
-        if(get_option('post_types_array') || $_COOKIE["postTypesArray"]){
-          if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
-            update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
-            //$post_types = implode(",",get_option('post_types_array'));
-          }else{
-            update_option('post_types_array',$_COOKIE["postTypesArray"]);
-            //$post_types = get_option('post_types_array');
-          }
+      update_option('firebase_apikey', $_POST["apikey"]);
+      update_option('firebase_projectid', $_POST["projectid"]);
+      update_option('firebase_appid', $_POST["appid"]);
+      update_option('firebase_authdomain', $_POST["projectid"] . ".firebaseapp.com");
+      update_option('firebase_databaseurl', "https://" . $_POST["projectid"] . ".firebaseio.com");
+      
+      if(get_option('post_types_array') || $_COOKIE["postTypesArray"]){
+        if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
+          update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
+          //$post_types = implode(",",get_option('post_types_array'));
+        }else{
+          update_option('post_types_array',$_COOKIE["postTypesArray"]);
+          //$post_types = get_option('post_types_array');
         }
       }
-    
+      
+    }else{
+      add_option('firebase_apikey', $_POST["apikey"]);
+      add_option('firebase_projectid', $_POST["projectid"]);
+      add_option('firebase_appid', $_POST["appid"]);
+      add_option('firebase_authdomain', $_POST["projectid"] . ".firebaseapp.com");
+      add_option('firebase_databaseurl', "https://" . $_POST["projectid"] . ".firebaseio.com");
+
+      if(get_option('post_types_array') || $_COOKIE["postTypesArray"]){
+        if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
+          update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
+          //$post_types = implode(",",get_option('post_types_array'));
+        }else{
+          update_option('post_types_array',$_COOKIE["postTypesArray"]);
+          //$post_types = get_option('post_types_array');
+        }
+      }
+    }
+  
 
     $actionStatus=1;
     //sendDataToFirestore(array("name"=>"My Post name","id"=>13,"author"=>"Daniel","post_type"=>"post"));
@@ -345,6 +361,7 @@ function echo_log( $what )
     //
     //debug_funcc($_COOKIE["postTypesArray"],"test");
     echo("<meta http-equiv='refresh' content='1'>");
+    }
   }
 ?>
 <div class="wrap">

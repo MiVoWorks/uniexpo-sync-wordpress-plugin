@@ -46,9 +46,9 @@ function wpDataToFirestoreData($data){
     $postData['fields'][$key]=array("stringValue"=>$value.""); 
    }
 
-   //$postCategory = getPostCategory($data['ID']);
+   $postCategory = getPostCategory($data['ID']);
    //collection category reference
-   //$postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
+   $postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
 
   return $postData;
 }
@@ -98,7 +98,7 @@ function saveCategories(){
   }
 
   foreach ($categories as $key => $element) {
-    sendDataToFirestore(wpDataToFirestoreData($element),false,$element->taxonomy,$element->term_id, true);
+    sendDataToFirestore(wpDataToFirestoreData($element),false,$element->taxonomy,$element->term_id);
   }
 }
 
@@ -108,9 +108,8 @@ function saveCategories(){
  * @param {Array} data - Array Representation of the POST
  * @param {Boolean} shouldIDoAConversion
  * @param {String} action_type - fetched if publish or update in firestore
- * @param {Boolean} isCategory - check if category -> categories don't have reference value
  */
-function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, $action_type, $isCategory){
+function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, $action_type){
   
   //$postMeta=get_post_meta($data['ID']);
   if($shouldIDoAConversion){
@@ -119,11 +118,13 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
     $postData=wpDataToFirestoreData($postData);
   }
 
-  if(!$isCategory){
+  $postStatus = $postData["fields"]["post_status"]['stringValue'];
+
+  /*if(!$isCategory){
     $postCategory = getPostCategory($postData["fields"]["ID"]['stringValue']);
     //collection category reference
     $postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
-  }
+  }*/
   
   //if publish post
   if($action_type == "publish"){
@@ -135,14 +136,24 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
       'method'      => 'POST',
       'data_format' => 'body',
     ));
-  //if update post
-  }else if($action_type == "update"){
+  //if update post && post status != trash
+  }else if($action_type == "update" && $postStatus != "trash"){
     $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$type."/".$id;
   
     wp_remote_post($url, array(
       'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
       'body'        => json_encode($postData),
       'method'      => 'PATCH',
+      'data_format' => 'body',
+    ));
+  //if update post action && post status == trash
+  }else if(($action_type == "update" && $postStatus == "trash")){
+    $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$type."/".$id;
+
+    wp_remote_post($url, array(
+      'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
+      'body'        => json_encode($postData),
+      'method'      => 'DELETE',
       'data_format' => 'body',
     ));
   }
@@ -190,7 +201,7 @@ function action_publish_post( $post_id, $post ) {
   $category_name = $wpdb->get_results($query);
   $post->category_name = $category_name[0]->name;
 
-  sendDataToFirestore((array) $post, true, $post->post_type, $post_id, "publish", false);
+  sendDataToFirestore((array) $post, true, $post->post_type, $post_id, "publish");
 }; 
 
 /**
@@ -217,7 +228,7 @@ function action_update_post($post_id, $post){
   $category_name = $wpdb->get_results($query);
   $post->category_name = $category_name[0]->name;
   
-  sendDataToFirestore((array) $post, true, $post->post_type, $post_id, "update", false);
+  sendDataToFirestore((array) $post, true, $post->post_type, $post_id, "update");
 }
 
 
