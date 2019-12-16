@@ -162,6 +162,15 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
       'method'      => 'DELETE',
       //'data_format' => 'body',
     ));
+  }else if(($action_type == "delete")){
+    $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$type."/".$id;
+
+    wp_remote_post($url, array(
+      'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
+      //'body'        => json_encode($postData),
+      'method'      => 'DELETE',
+      //'data_format' => 'body',
+    ));
   }
 }
 
@@ -247,6 +256,11 @@ function action_create_category($term_id, $taxonomy_term_id){
   sendDataToFirestore(wpDataToFirestoreData($element[0]),false,$element[0]->taxonomy,$term_id,"publish",true);
 }
 
+//ON CATEGORY DELETE 
+function action_delete_category($term_id, $taxonomy_term_id, $deleted_term){
+  sendDataToFirestore(wpDataToFirestoreData($deleted_term),false,$deleted_term->taxonomy,$term_id,"delete",true);
+}
+
 function subscribeToDifferentPostTypes($postTypes){
   //check if postTypes is array
   if(is_array($postTypes)){
@@ -275,6 +289,9 @@ if(get_option('post_types_array')){
 
 //on create category
 add_action('create_category', 'action_create_category', 10, 2);
+
+//on category delete
+add_action('delete_category','action_delete_category',10, 3);
 
 /**
  * Add UniExpo menu in Admin navigation

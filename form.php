@@ -411,9 +411,7 @@ function echo_log( $what )
     <br/>
     <?php endif; ?>
 
-    <?php if(empty(get_option('firebase_projectid'))): ?>
-      <p class="submit"><input type="submit" name="submit" id="submit" class="button button-primary" value="Save Changes"  /></p>
-    <?php endif; ?>
+    <p class="submit"><input type="submit" name="submit" id="submit" class="button button-primary" value="Save Changes"  /></p>
   </form>
 </div>
 </body>
