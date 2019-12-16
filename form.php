@@ -248,6 +248,7 @@ function echo_log( $what )
     return $wpdb->get_results($query);
   }
 
+  //HANDLE POST REQUESTS
   if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if($_POST["action"] == "categories-sync"){
       saveCategories2();
@@ -255,7 +256,9 @@ function echo_log( $what )
     }else if($_POST["action"] == "posts-sync"){
       if(is_array($post_types)){
         foreach ($post_types as $key => $type) {
+
           $posts = getAllPostsByPostType($type);
+          
           foreach ($posts as $post_key => $post){
             sendDataToFirestore2((array) $post, true, $post->post_type, $post->ID, "publish", false);
           }
@@ -267,8 +270,9 @@ function echo_log( $what )
           sendDataToFirestore2((array) $post, true, $post->post_type, $post->ID, "publish", false);
         }
       }
+      //on post type to sync click
     }else if($_POST["action"] == "post-type"){
-      debug_funcc($_POST["postTypesArray"],"DADA");
+      
       if(get_option('post_types_array') || $_POST["postTypesArray"]){
         if(count(explode(",",$_POST["postTypesArray"])) > 1){
           update_option('post_types_array', explode(",",$_POST["postTypesArray"]));
@@ -406,7 +410,10 @@ function echo_log( $what )
     <?php endif; ?>
     <br/>
     <?php endif; ?>
-    <p class="submit"><input type="submit" name="submit" id="submit" class="button button-primary" value="Save Changes"  /></p>
+
+    <?php if(empty(get_option('firebase_projectid'))): ?>
+      <p class="submit"><input type="submit" name="submit" id="submit" class="button button-primary" value="Save Changes"  /></p>
+    <?php endif; ?>
   </form>
 </div>
 </body>

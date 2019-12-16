@@ -46,9 +46,11 @@ function wpDataToFirestoreData($data){
     $postData['fields'][$key]=array("stringValue"=>$value.""); 
    }
 
-   $postCategory = getPostCategory($data['ID']);
-   //collection category reference
-   $postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
+   //$postCategory = getPostCategory($data['ID']);
+   //if(!empty($postCategory)){
+    //collection category reference
+    //$postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
+   //}
 
   return $postData;
 }
@@ -98,18 +100,16 @@ function saveCategories(){
   }
 
   foreach ($categories as $key => $element) {
-    sendDataToFirestore(wpDataToFirestoreData($element),false,$element->taxonomy,$element->term_id);
+    sendDataToFirestore(wpDataToFirestoreData($element),false,$element->taxonomy,$element->term_id,"publish", true);
   }
 }
-
-//saveCategories();
 
 /**
  * @param {Array} data - Array Representation of the POST
  * @param {Boolean} shouldIDoAConversion
  * @param {String} action_type - fetched if publish or update in firestore
  */
-function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, $action_type){
+function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, $action_type, $isCategory){
   
   //$postMeta=get_post_meta($data['ID']);
   if($shouldIDoAConversion){
@@ -118,8 +118,14 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
     $postData=wpDataToFirestoreData($postData);
   }
 
-  $postStatus = $postData["fields"]["post_status"]['stringValue'];
+  if(!$isCategory){
+    $postStatus = $postData["fields"]["post_status"]['stringValue'];
 
+    $postCategory = getPostCategory($postData["fields"]["ID"]['stringValue']);
+      //collection category reference 
+    $postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
+  }
+ 
   /*if(!$isCategory){
     $postCategory = getPostCategory($postData["fields"]["ID"]['stringValue']);
     //collection category reference
@@ -201,7 +207,7 @@ function action_publish_post( $post_id, $post ) {
   $category_name = $wpdb->get_results($query);
   $post->category_name = $category_name[0]->name;
 
-  sendDataToFirestore((array) $post, true, $post->post_type, $post_id, "publish");
+  sendDataToFirestore((array) $post, true, $post->post_type, $post_id, "publish", false);
 }; 
 
 /**
@@ -228,9 +234,18 @@ function action_update_post($post_id, $post){
   $category_name = $wpdb->get_results($query);
   $post->category_name = $category_name[0]->name;
   
-  sendDataToFirestore((array) $post, true, $post->post_type, $post_id, "update");
+  sendDataToFirestore((array) $post, true, $post->post_type, $post_id, "update", false);
 }
 
+//ON NEW CATEGORY CREATE 
+function action_create_category($term_id, $taxonomy_term_id){
+  global $wpdb;
+
+  $query = "SELECT {$wpdb->prefix}terms.term_id, {$wpdb->prefix}terms.name, {$wpdb->prefix}term_taxonomy.taxonomy FROM {$wpdb->prefix}terms INNER JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}terms.term_id={$wpdb->prefix}term_taxonomy.term_id AND {$wpdb->prefix}terms.term_id='".$term_id."'";
+  $element = $wpdb->get_results($query);
+
+  sendDataToFirestore(wpDataToFirestoreData($element[0]),false,$element[0]->taxonomy,$term_id,"publish",true);
+}
 
 function subscribeToDifferentPostTypes($postTypes){
   //check if postTypes is array
@@ -251,18 +266,15 @@ function subscribeToDifferentPostTypes($postTypes){
  
      //on post update
      add_action('save_'.$postTypes, 'action_update_post', 10, 3);
-  }
-  
+  } 
 }
 
 if(get_option('post_types_array')){
   subscribeToDifferentPostTypes(get_option('post_types_array'));
 }
 
-//subscribeToDifferentPostTypes(['post','event']);
-
-
-//add_action( 'publish_post', 'action_publish_post', 10, 1 );
+//on create category
+add_action('create_category', 'action_create_category', 10, 2);
 
 /**
  * Add UniExpo menu in Admin navigation
