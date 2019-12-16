@@ -152,9 +152,9 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
 
     wp_remote_post($url, array(
       'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
-      'body'        => json_encode($postData),
+      //'body'        => json_encode($postData),
       'method'      => 'DELETE',
-      'data_format' => 'body',
+      //'data_format' => 'body',
     ));
   }
 }

@@ -14,25 +14,6 @@
   $( function() {
       //remove ui-selected class after page reload and then add again.  
       //$("li").removeClass("ui-selected");
-
-      /*if(getCookieValueByName("postTypesArray") != null){
-        deleteCookie("postTypesArray");
-        alert(getCookieValueByName("postTypesArray"))
-      }*/
-        
-      function getCookieValueByName(name){
-        var v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
-        return v ? v[2] : null;
-      }
-
-      function setCookie(name, value, days) {
-          var d = new Date;
-          d.setTime(d.getTime() + 24*60*60*1000*days);
-          document.cookie = name + "=" + value + ";path=/;expires=" + d.toGMTString();
-      }
-
-      function deleteCookie(name) { setCookie(name, '', -1); }
-
       var currentPostTypes = JSON.parse('<?php echo json_encode(get_option('post_types_array')); ?>');
     
       var postTypesArray = [];
@@ -46,6 +27,7 @@
             $("li[name*="+postType+"]").addClass("ui-selected");
           })
         }else{
+          postTypesArray.push(currentPostTypes);
           $("li[name*="+currentPostTypes+"]").addClass("ui-selected");
         }
       }
@@ -58,39 +40,50 @@
 
           //index to remove from array
           //var index = $("#selectable li").index(this);
-          var newArrayPosTypes = [];
-          for(var i=0; i<postTypesArray.length; i++){
+          postTypesArray.splice( postTypesArray.indexOf($(this).attr("name")), 1 );
 
-            if(postTypesArray[i] != $(this).attr("name")){
-              newArrayPosTypes.push(postTypesArray[i]);
-            }
-          }
-
-          document.cookie = "postTypesArray="+newArrayPosTypes;
+          $.ajax({
+            type: "POST",
+            url: "admin.php?page=uniexpo-plugin",
+            data: {
+              'action': "post-type",
+              'postTypesArray': postTypesArray
+              }
+          });
         }else{
           $(this).toggleClass("ui-selected");
           postTypesArray.push($(this).attr("name"))
           //localStorage.setItem('postTypesArray', postTypesArray);
-          document.cookie = "postTypesArray="+postTypesArray;
+          
+          $.ajax({
+            type: "POST",
+            url: "admin.php?page=uniexpo-plugin",
+            data: {
+              'action': "post-type",
+              'postTypesArray': postTypesArray
+              }
+          });
         }        
       });
 
-      $("#categories-sync").change(function() {
-          if(this.checked) {
-            var value = $("#categories-sync").val();
-              $.ajax({
-                type: "POST",
-                url: "admin.php?page=uniexpo-plugin",
-                data: {'action': value}
-              });
-          }
+      $("#categories-sync").click(function() {
+          //var value = $("#categories-sync").val();
+            $.ajax({
+              type: "POST",
+              url: "admin.php?page=uniexpo-plugin",
+              data: {
+                'action': "categories-sync"
+                }
+            });
       });
 
       $('#posts-sync').click(function() {
           $.ajax({
             type: "POST",
             url: "admin.php?page=uniexpo-plugin",
-            data: {'action': "posts-sync"}
+            data: {
+              'action': "posts-sync"
+              }
           });
       });
   });
@@ -274,25 +267,37 @@ function echo_log( $what )
           sendDataToFirestore2((array) $post, true, $post->post_type, $post->ID, "publish", false);
         }
       }
-    }else{
-      /*if(empty($_POST["post_types"])){
-      $post_types = get_option('post_types_array');
+    }else if($_POST["action"] == "post-type"){
+      debug_funcc($_POST["postTypesArray"],"DADA");
+      if(get_option('post_types_array') || $_POST["postTypesArray"]){
+        if(count(explode(",",$_POST["postTypesArray"])) > 1){
+          update_option('post_types_array', explode(",",$_POST["postTypesArray"]));
+          //$post_types = implode(",",get_option('post_types_array'));
+        }else{
+          update_option('post_types_array',$_POST["postTypesArray"]);
+          //$post_types = get_option('post_types_array');
+        }
+      }
+      
     }else{
       if(!(empty($_POST["apikey"]) || empty($_POST["projectid"]) || empty($_POST["appid"]))){
-      
+        
         update_option('firebase_apikey', $_POST["apikey"]);
         update_option('firebase_projectid', $_POST["projectid"]);
         update_option('firebase_appid', $_POST["appid"]);
         update_option('firebase_authdomain', $_POST["projectid"] . ".firebaseapp.com");
         update_option('firebase_databaseurl', "https://" . $_POST["projectid"] . ".firebaseio.com");
-
-        if(count(explode(",",$_POST["post_types"])) > 1){
-          update_option('post_types_array', explode(",",$_POST["post_types"]));
-          $post_types = implode(",",get_option('post_types_array'));
-        }else{
-          update_option('post_types_array', $_POST["post_types"]);
-          $post_types = get_option('post_types_array');
-        }
+        
+        /*if(get_option('post_types_array') || $_COOKIE["postTypesArray"]){
+          if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
+            update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
+            //$post_types = implode(",",get_option('post_types_array'));
+          }else{
+            update_option('post_types_array',$_COOKIE["postTypesArray"]);
+            //$post_types = get_option('post_types_array');
+          }
+        }*/
+        
       }else{
         add_option('firebase_apikey', $_POST["apikey"]);
         add_option('firebase_projectid', $_POST["projectid"]);
@@ -300,68 +305,23 @@ function echo_log( $what )
         add_option('firebase_authdomain', $_POST["projectid"] . ".firebaseapp.com");
         add_option('firebase_databaseurl', "https://" . $_POST["projectid"] . ".firebaseio.com");
 
-        if(count(explode(",",$_POST["post_types"])) > 1){
-          update_option('post_types_array', explode(",",$_POST["post_types"]));
-          $post_types = implode(",",get_option('post_types_array'));
-        }else{
-          update_option('post_types_array', $_POST["post_types"]);
-          $post_types = get_option('post_types_array');
-        }
+        /*if(get_option('post_types_array') || $_COOKIE["postTypesArray"]){
+          if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
+            update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
+            //$post_types = implode(",",get_option('post_types_array'));
+          }else{
+            update_option('post_types_array',$_COOKIE["postTypesArray"]);
+            //$post_types = get_option('post_types_array');
+          }
+        }*/
       }
-    }*/
-    if(!(empty($_POST["apikey"]) || empty($_POST["projectid"]) || empty($_POST["appid"]))){
-      
-      update_option('firebase_apikey', $_POST["apikey"]);
-      update_option('firebase_projectid', $_POST["projectid"]);
-      update_option('firebase_appid', $_POST["appid"]);
-      update_option('firebase_authdomain', $_POST["projectid"] . ".firebaseapp.com");
-      update_option('firebase_databaseurl', "https://" . $_POST["projectid"] . ".firebaseio.com");
-      
-      if(get_option('post_types_array') || $_COOKIE["postTypesArray"]){
-        if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
-          update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
-          //$post_types = implode(",",get_option('post_types_array'));
-        }else{
-          update_option('post_types_array',$_COOKIE["postTypesArray"]);
-          //$post_types = get_option('post_types_array');
-        }
-      }
-      
-    }else{
-      add_option('firebase_apikey', $_POST["apikey"]);
-      add_option('firebase_projectid', $_POST["projectid"]);
-      add_option('firebase_appid', $_POST["appid"]);
-      add_option('firebase_authdomain', $_POST["projectid"] . ".firebaseapp.com");
-      add_option('firebase_databaseurl', "https://" . $_POST["projectid"] . ".firebaseio.com");
-
-      if(get_option('post_types_array') || $_COOKIE["postTypesArray"]){
-        if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
-          update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
-          //$post_types = implode(",",get_option('post_types_array'));
-        }else{
-          update_option('post_types_array',$_COOKIE["postTypesArray"]);
-          //$post_types = get_option('post_types_array');
-        }
-      }
+      $actionStatus=1;
+      //header("Refresh:0");
+      //header("Location: ".$_SERVER['PHP_SELF']);
+      echo("<meta http-equiv='refresh' content='1'>");
     }
-  
 
-    $actionStatus=1;
-    //sendDataToFirestore(array("name"=>"My Post name","id"=>13,"author"=>"Daniel","post_type"=>"post"));
-    
-    //print_r(get_post("1"));
-
-    //getPostsByType(get_option('post_types_array'));
-    //echo "<script>document.write(localStorage.getItem('postTypesArray'));</script>";
-    /*if( isset($_COOKIE["postTypesArray"])){
-      debug_funcc($_COOKIE["postTypesArray"],"debug");
-    }*/
-    //header("Refresh:0");
-    //header("Location: ".$_SERVER['PHP_SELF']);
-    //
-    //debug_funcc($_COOKIE["postTypesArray"],"test");
     echo("<meta http-equiv='refresh' content='1'>");
-    }
   }
 ?>
 <div class="wrap">
@@ -434,12 +394,12 @@ function echo_log( $what )
     <table class="form-table" role="presentation">
       <tr>
         <th scope="row">
-          <label for="blogname">Additional options</label>
+          <label for="blogname">Full synchronization</label>
         </th>
         <td>
-          <input type="checkbox" id="categories-sync" class="button-info" value="categories-sync"> Categories synchronization
+          <input type="input" id="categories-sync" class="button button-info" value="Categories synchronization">
             &nbsp;&nbsp;  
-          <input type="checkbox" id="posts-sync" class="button-info" value="posts-sync"> Full posts synchronization
+          <input type="input" id="posts-sync" class="button button-info" value="Full posts synchronization"> 
         </td>
       </tr>
     </table>
