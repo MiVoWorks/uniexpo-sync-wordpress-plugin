@@ -32,8 +32,21 @@
         }
       }
 
-      //var postTypesArray = [];
       $(".ui-widget-content").click( function() {
+        $(this).toggleClass("ui-selected");
+        $.ajax({
+            type: "POST",
+            url: "admin-ajax.php",
+            data: {
+              'action': "update_post_types_to_sync",
+              'clicked': $(this).attr("name")
+              }
+          });
+      })
+
+
+
+      /*$(".ui-widget-content_old").click( function() {
         //if is selected remove the class and removed it from selected array
         if($(this).hasClass("ui-selected")){
           $(this).removeClass("ui-selected");
@@ -41,49 +54,11 @@
           //index to remove from array
           //var index = $("#selectable li").index(this);
           postTypesArray.splice( postTypesArray.indexOf($(this).attr("name")), 1 );
-
-          $.ajax({
-            type: "POST",
-            url: "admin.php?page=uniexpo-plugin",
-            data: {
-              'action': "post-type",
-              'postTypesArray': postTypesArray
-              }
-          });
         }else{
           $(this).toggleClass("ui-selected");
           postTypesArray.push($(this).attr("name"))
-          
-          $.ajax({
-            type: "POST",
-            url: "admin.php?page=uniexpo-plugin",
-            data: {
-              'action': "post-type",
-              'postTypesArray': postTypesArray
-              }
-          });
-        }        
-      });
-
-      $("#categories-sync").click(function() {
-            $.ajax({
-              type: "POST",
-              url: "admin.php?page=uniexpo-plugin",
-              data: {
-                'action': "categories-sync"
-                }
-            });
-      });
-
-      $('#posts-sync').click(function() {
-          $.ajax({
-            type: "POST",
-            url: "admin.php?page=uniexpo-plugin",
-            data: {
-              'action': "posts-sync"
-              }
-          });
-      });
+        }       
+      });*/
   });
   </script>
 </head>
@@ -275,60 +250,44 @@ function echo_log( $what )
 
   //HANDLE POST REQUESTS
   if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    if($_POST["action"] == "post-type"){
+    if(!(empty($_POST["apikey"]) || empty($_POST["projectid"]) || empty($_POST["appid"]))){
+        
+      update_option('firebase_apikey', $_POST["apikey"]);
+      update_option('firebase_projectid', $_POST["projectid"]);
+      update_option('firebase_appid', $_POST["appid"]);
+      update_option('firebase_authdomain', $_POST["projectid"] . ".firebaseapp.com");
+      update_option('firebase_databaseurl', "https://" . $_POST["projectid"] . ".firebaseio.com");
       
-      if(get_option('post_types_array') || $_POST["postTypesArray"]){
-        if(count(explode(",",$_POST["postTypesArray"])) > 1){
-          update_option('post_types_array', explode(",",$_POST["postTypesArray"]));
+      /*if(get_option('post_types_array') || $_COOKIE["postTypesArray"]){
+        if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
+          update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
           //$post_types = implode(",",get_option('post_types_array'));
         }else{
-          update_option('post_types_array',$_POST["postTypesArray"]);
+          update_option('post_types_array',$_COOKIE["postTypesArray"]);
           //$post_types = get_option('post_types_array');
         }
-      }
+      }*/
       
     }else{
-      if(!(empty($_POST["apikey"]) || empty($_POST["projectid"]) || empty($_POST["appid"]))){
-        
-        update_option('firebase_apikey', $_POST["apikey"]);
-        update_option('firebase_projectid', $_POST["projectid"]);
-        update_option('firebase_appid', $_POST["appid"]);
-        update_option('firebase_authdomain', $_POST["projectid"] . ".firebaseapp.com");
-        update_option('firebase_databaseurl', "https://" . $_POST["projectid"] . ".firebaseio.com");
-        
-        /*if(get_option('post_types_array') || $_COOKIE["postTypesArray"]){
-          if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
-            update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
-            //$post_types = implode(",",get_option('post_types_array'));
-          }else{
-            update_option('post_types_array',$_COOKIE["postTypesArray"]);
-            //$post_types = get_option('post_types_array');
-          }
-        }*/
-        
-      }else{
-        add_option('firebase_apikey', $_POST["apikey"]);
-        add_option('firebase_projectid', $_POST["projectid"]);
-        add_option('firebase_appid', $_POST["appid"]);
-        add_option('firebase_authdomain', $_POST["projectid"] . ".firebaseapp.com");
-        add_option('firebase_databaseurl', "https://" . $_POST["projectid"] . ".firebaseio.com");
+      add_option('firebase_apikey', $_POST["apikey"]);
+      add_option('firebase_projectid', $_POST["projectid"]);
+      add_option('firebase_appid', $_POST["appid"]);
+      add_option('firebase_authdomain', $_POST["projectid"] . ".firebaseapp.com");
+      add_option('firebase_databaseurl', "https://" . $_POST["projectid"] . ".firebaseio.com");
 
-        /*if(get_option('post_types_array') || $_COOKIE["postTypesArray"]){
-          if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
-            update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
-            //$post_types = implode(",",get_option('post_types_array'));
-          }else{
-            update_option('post_types_array',$_COOKIE["postTypesArray"]);
-            //$post_types = get_option('post_types_array');
-          }
-        }*/
-      }
-      $actionStatus=1;
-      //header("Refresh:0");
-      //header("Location: ".$_SERVER['PHP_SELF']);
-      echo("<meta http-equiv='refresh' content='1'>");
+      /*if(get_option('post_types_array') || $_COOKIE["postTypesArray"]){
+        if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
+          update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
+          //$post_types = implode(",",get_option('post_types_array'));
+        }else{
+          update_option('post_types_array',$_COOKIE["postTypesArray"]);
+          //$post_types = get_option('post_types_array');
+        }
+      }*/
     }
-
+    $actionStatus=1;
+    //header("Refresh:0");
+    //header("Location: ".$_SERVER['PHP_SELF']);
     echo("<meta http-equiv='refresh' content='1'>");
   }
 ?>

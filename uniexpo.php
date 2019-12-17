@@ -30,6 +30,85 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
+add_action( 'wp_ajax_update_post_types_to_sync', 'update_post_types_to_sync' );
+
+function update_post_types_to_sync() {
+  global $wpdb; // this is how you get access to the database
+  
+  //2.DEtermine if this post types exists
+  $exists = false;
+  $key_type_to_edit = '';
+  $value_type_to_edit = '';
+
+  //What we have clicked
+  $clicked= $_POST['clicked'];
+
+  //1.Get Options for post-type - what has been ckicked so far
+  $selected_post_types = get_option('post_types_array');
+
+  //echo $selected_post_types;
+  //if not empty post types array
+  if(!empty($selected_post_types)){
+    //if post types is array
+    if(is_array($selected_post_types)){
+      if(count($selected_post_types) > 0){
+        $selected_post_types = array_values($selected_post_types);
+        
+        foreach($selected_post_types as $key => $value){
+          if($value == $clicked){
+            $exists = true;
+
+            $key_type_to_edit = $key;
+            $value_type_to_edit = $value;
+          }
+        }
+
+        //3. Add or remove the item
+        if($exists){
+          //Remove it
+          //unset($selected_post_types[$key_type_to_edit]); 
+          array_splice($selected_post_types, $key_type_to_edit, 1);
+          update_option('post_types_array', $selected_post_types);
+        }else{
+          //Add it
+          array_push($selected_post_types, $clicked);
+          update_option('post_types_array', $selected_post_types);
+        }
+      }
+    }else{
+      $new_array_to_be_saved = array();
+
+      if($clicked == $selected_post_types){
+        update_option('post_types_array', $new_array_to_be_saved);
+      }else{
+        array_push($new_array_to_be_saved, $selected_post_types);
+        array_push($new_array_to_be_saved, $clicked);
+  
+        update_option('post_types_array', $new_array_to_be_saved);
+      }
+    }
+  //add clicked to post types array if not exits first time
+  }else{
+    update_option('post_types_array', $clicked);
+  }
+
+  //4. Do the saving
+  //update_option('post_types_array', explode(",",$_POST["postTypesArray"]));
+  /*if(get_option('post_types_array') || $_POST["postTypesArray"]){
+    if(count(explode(",",$_POST["postTypesArray"])) > 1){
+      update_option('post_types_array', explode(",",$_POST["postTypesArray"]));
+      //$post_types = implode(",",get_option('post_types_array'));
+    }else{
+      update_option('post_types_array',$_POST["postTypesArray"]);
+      //$post_types = get_option('post_types_array');
+    }
+  }*/
+	wp_die(); // this is required to terminate immediately and return a proper response
+}
+
+
+
+
 function debug_func($data,$file="debug"){
   $myfile = fopen(__DIR__ .'/debug/'.$file.'.txt', 'w');
   //fwrite($myfile, json_encode( (array)$data ));
