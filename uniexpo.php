@@ -278,14 +278,30 @@ function action_update_post($post_id, $post){
   sendDataToFirestore((array) $post, true, $post->post_type, $post_id, "update", false);
 }
 
+
+function checkMetaCategoryData($term_id, $element){
+      $query = "SELECT * FROM 
+              (SELECT categories_meta.term_id, categories_meta.name, categories_meta.taxonomy, categories_meta.meta_key, categories_meta.meta_value, {$wpdb->prefix}posts.guid FROM 
+              (SELECT categories.term_id, categories.name, categories.taxonomy, {$wpdb->prefix}termmeta.meta_key, {$wpdb->prefix}termmeta.meta_value FROM
+              (SELECT {$wpdb->prefix}terms.term_id, {$wpdb->prefix}terms.name, {$wpdb->prefix}term_taxonomy.taxonomy FROM {$wpdb->prefix}_terms 
+              INNER JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}terms.term_id={$wpdb->prefix}term_taxonomy.term_id AND wp_terms.term_id='".$term_id."') categories
+              LEFT JOIN {$wpdb->prefix}termmeta ON categories.term_id={$wpdb->prefix}termmeta.term_id) categories_meta
+              LEFT JOIN {$wpdb->prefix}posts ON categories_meta.meta_value={$wpdb->prefix}posts.ID
+              ORDER BY term_id) a";
+
+    $meta_categories = $wpdb->get_results($query);
+
+    //debug_func($meta_categories, "OK");
+}
 //ON NEW CATEGORY CREATE 
 function action_create_category($term_id, $taxonomy_term_id){
   global $wpdb;
 
   $query = "SELECT {$wpdb->prefix}terms.term_id, {$wpdb->prefix}terms.name, {$wpdb->prefix}term_taxonomy.taxonomy FROM {$wpdb->prefix}terms INNER JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}terms.term_id={$wpdb->prefix}term_taxonomy.term_id AND {$wpdb->prefix}terms.term_id='".$term_id."'";
-  $element = $wpdb->get_results($query);
 
+  $element = $wpdb->get_results($query);
   sendDataToFirestore(wpDataToFirestoreData($element[0]),false,$element[0]->taxonomy,$term_id,"publish",true);
+  //checkMetaCategoryData($term_id, $element);
 }
 
 //ON CATEGORY DELETE 
