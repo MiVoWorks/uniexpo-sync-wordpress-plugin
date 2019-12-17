@@ -36,7 +36,8 @@
   $selectedOptions=get_option('post_types_array');
     foreach ( $types as $type ) {
       if ( isset( $type->name ) &&  !in_array($type->name, $disabled) ) {
-        $currItem=array("name"=>$type->name,"selected"=>in_array($type->name, $selectedOptions));
+        //$currItem=array("name"=>$type->name,"selected"=>in_array($type->name, $selectedOptions));
+        $currItem=array("name"=>$type->name,"selected"=>!empty($selectedOptions)?in_array($type->name, $selectedOptions):false);
         array_push($arrayTypes, $currItem);
     }
   }
@@ -80,12 +81,12 @@ function echo_log( $what )
   function getPostCategory2($post_id){
     global $wpdb;
   
-    $query = "SELECT * FROM (SELECT * FROM(SELECT meta_id,post_id FROM wp_postmeta WHERE post_id=".$post_id.") a
-              INNER JOIN wp_term_relationships ON wp_term_relationships.object_id = a.post_id) b
-              INNER JOIN wp_term_taxonomy ON wp_term_taxonomy.term_taxonomy_id = b.term_taxonomy_id LIMIT 1";
+    $query = "SELECT * FROM (SELECT * FROM(SELECT meta_id,post_id FROM {$wpdb->prefix}postmeta WHERE post_id=".$post_id.") a
+              INNER JOIN {$wpdb->prefix}term_relationships ON {$wpdb->prefix}term_relationships.object_id = a.post_id) b
+              INNER JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}term_taxonomy.term_taxonomy_id = b.term_taxonomy_id LIMIT 1";
   
     $category = $wpdb->get_results($query);
-    
+  
     return $category;
   }
 
@@ -99,8 +100,11 @@ function echo_log( $what )
      }
 
      //$postCategory = getPostCategory2($data['ID']);
-     //collection category reference
-     //$postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
+     
+     /*if(!empty($postCategory)){
+       //collection category reference
+      $postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
+     }*/
      
     return $postData;
   }
@@ -116,10 +120,11 @@ function echo_log( $what )
 
     if(!$isCategory){
       $postCategory = getPostCategory2($postData["fields"]["ID"]['stringValue']);
-      //collection category reference
-      $postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
-    }
-    
+      if(!empty($postCategory)){
+        //collection category reference
+        $postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
+      }
+    }  
     //if publish post
     if($action_type == "publish"){
       $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$type."?documentId=".$id;
@@ -336,6 +341,8 @@ function echo_log( $what )
     <table class="form-table" role="presentation">
       <tr>
         <td>
+          <p class="description" id="tagline-description">Note: synchronization can take some time. Please be patient.</p>
+          <br/>
           <a href="admin.php?page=uniexpo-plugin&dofullcatsync=true" class="button button-primary" value="Categories">Categories</a>
             &nbsp;&nbsp;  
             <a href="admin.php?page=uniexpo-plugin&dofullpostsync=true" class="button button-primary" value="Post Types">Post Types</a>

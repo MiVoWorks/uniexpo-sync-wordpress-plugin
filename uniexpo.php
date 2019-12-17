@@ -105,9 +105,9 @@ function wpDataToFirestoreData($data){
 function getPostCategory($post_id){
   global $wpdb;
 
-  $query = "SELECT * FROM (SELECT * FROM(SELECT meta_id,post_id FROM wp_postmeta WHERE post_id=".$post_id.") a
-            INNER JOIN wp_term_relationships ON wp_term_relationships.object_id = a.post_id) b
-            INNER JOIN wp_term_taxonomy ON wp_term_taxonomy.term_taxonomy_id = b.term_taxonomy_id LIMIT 1";
+  $query = "SELECT * FROM (SELECT * FROM(SELECT meta_id,post_id FROM {$wpdb->prefix}postmeta WHERE post_id=".$post_id.") a
+            INNER JOIN {$wpdb->prefix}term_relationships ON {$wpdb->prefix}term_relationships.object_id = a.post_id) b
+            INNER JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}term_taxonomy.term_taxonomy_id = b.term_taxonomy_id LIMIT 1";
 
   $category = $wpdb->get_results($query);
   
@@ -170,8 +170,11 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
     $postStatus = $postData["fields"]["post_status"]['stringValue'];
 
     $postCategory = getPostCategory($postData["fields"]["ID"]['stringValue']);
-    //collection category reference 
-    $postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
+    if(!empty($postCategory)){
+      //collection category reference 
+      $postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
+    }
+    
   }
  
   /*if(!$isCategory){
