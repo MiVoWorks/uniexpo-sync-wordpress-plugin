@@ -15,7 +15,7 @@
  * @wordpress-plugin
  * Plugin Name:       UniExpo
  * Plugin URI:        https://reactappbuilder.com
- * Description:       This is a short description of what the plugin does. It's displayed in the WordPress admin area.
+ * Description:       This is a plugin to sync data to your Firestore.
  * Version:           1.0.0
  * Author:            Mobidonia
  * Author URI:        https://mobidonia.com
@@ -172,22 +172,6 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
   }
 }
 
-/*add_action( 'init', 'wpse34410_init', 0, 99 );
-  function wpse34410_init() 
-  {
-      $arrayTypes = array();
-      $types = get_post_types( [], 'objects' );
-      foreach ( $types as $type ) {
-          if ( isset( $type->name ) ) {
-              // you'll probably want to do something else.
-             // debug_func($type->name,"data".$type->name);
-             array_push($arrayTypes, $type->name);
-          }
-      }
-
-      debug_func($arrayTypes,"data");
-     
-  }*/
 
 /**
  * Synchronize post on publish new post

@@ -246,30 +246,36 @@ function echo_log( $what )
     return $wpdb->get_results($query);
   }
 
-  //HANDLE POST REQUESTS
-  if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    if($_POST["action"] == "categories-sync"){
-      saveCategories2();
-      $actionCategoriesSyncStatus = 1;
-    }else if($_POST["action"] == "posts-sync"){
-      if(is_array($post_types)){
-        foreach ($post_types as $key => $type) {
+  //Handle Cat sync
+  if(isset($_GET['dofullcatsync'])){
+    saveCategories2();
+    $actionCategoriesSyncStatus = 1;
+  }
 
-          $posts = getAllPostsByPostType($type);
-          
-          foreach ($posts as $post_key => $post){
-            sendDataToFirestore2((array) $post, true, $post->post_type, $post->ID, "publish", false);
-          }
-        }
-      //check if postTypes is string -> only one postTypes
-      }else{
-        $posts = getAllPostsByPostType($post_types);
+  //Handle full post sync
+  if(isset($_GET['dofullpostsync'])){
+    if(is_array($post_types)){
+      foreach ($post_types as $key => $type) {
+
+        $posts = getAllPostsByPostType($type);
+        
         foreach ($posts as $post_key => $post){
           sendDataToFirestore2((array) $post, true, $post->post_type, $post->ID, "publish", false);
         }
       }
-      //on post type to sync click
-    }else if($_POST["action"] == "post-type"){
+    //check if postTypes is string -> only one postTypes
+    }else{
+      $posts = getAllPostsByPostType($post_types);
+      foreach ($posts as $post_key => $post){
+        sendDataToFirestore2((array) $post, true, $post->post_type, $post->ID, "publish", false);
+      }
+    }
+    $actionPostSyncStatus=1;
+  }
+
+  //HANDLE POST REQUESTS
+  if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    if($_POST["action"] == "post-type"){
       
       if(get_option('post_types_array') || $_POST["postTypesArray"]){
         if(count(explode(",",$_POST["postTypesArray"])) > 1){
@@ -338,6 +344,11 @@ function echo_log( $what )
     <p>Categories Synchronized successfully!</p>
   </div>
   <?php } ?>
+  <?php if($actionPostSyncStatus==1){ ?>
+    <div class="notice notice-success settings-error is-dismissible alert-saved">
+    <p>Post Types Synchronized successfully!</p>
+  </div>
+  <?php } ?>
   <br/>
   <h2>Firebase Project Settings</h2>
   <hr/>
@@ -368,6 +379,7 @@ function echo_log( $what )
         </td>
       </tr>
     </table> 
+    <p class="submit"><input type="submit" name="submit" id="submit" class="button button-primary" value="Save Changes"  /></p>
     <br/>
     <?php if(get_option('firebase_projectid')): ?>
     <h2>Sync Settings</h2>
@@ -392,16 +404,16 @@ function echo_log( $what )
         </td>
       </tr>
     </table>
+    </form>
     <?php if(!empty(get_option('post_types_array'))): ?>
+      <h2>Initial Full sync</h2>
+      <hr/>
     <table class="form-table" role="presentation">
       <tr>
-        <th scope="row">
-          <label for="blogname">Full synchronization</label>
-        </th>
         <td>
-          <input type="input" id="categories-sync" class="button button-info" value="Categories synchronization">
+          <a href="admin.php?page=uniexpo-plugin&dofullcatsync=true" class="button button-primary" value="Categories">Categories</a>
             &nbsp;&nbsp;  
-          <input type="input" id="posts-sync" class="button button-info" value="Full posts synchronization"> 
+            <a href="admin.php?page=uniexpo-plugin&dofullpostsync=true" class="button button-primary" value="Post Types">Post Types</a>
         </td>
       </tr>
     </table>
@@ -409,8 +421,8 @@ function echo_log( $what )
     <br/>
     <?php endif; ?>
 
-    <p class="submit"><input type="submit" name="submit" id="submit" class="button button-primary" value="Save Changes"  /></p>
-  </form>
+    
+  
 </div>
 </body>
 </html>
