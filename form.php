@@ -12,26 +12,7 @@
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
   <script>
   $( function() {
-      //remove ui-selected class after page reload and then add again.  
-      //$("li").removeClass("ui-selected");
-      var currentPostTypes = JSON.parse('<?php echo json_encode(get_option('post_types_array')); ?>');
-    
-      var postTypesArray = [];
-      if(currentPostTypes.length){ 
-        if(Array.isArray(currentPostTypes) && currentPostTypes.length){
-          currentPostTypes.forEach(function(postType){
-            //add current selected items to array that will be saved in session
-            postTypesArray.push(postType);
-
-            //add class selected
-            $("li[name*="+postType+"]").addClass("ui-selected");
-          })
-        }else{
-          postTypesArray.push(currentPostTypes);
-          $("li[name*="+currentPostTypes+"]").addClass("ui-selected");
-        }
-      }
-
+     
       $(".ui-widget-content").click( function() {
         $(this).toggleClass("ui-selected");
         $.ajax({
@@ -43,22 +24,6 @@
               }
           });
       })
-
-
-
-      /*$(".ui-widget-content_old").click( function() {
-        //if is selected remove the class and removed it from selected array
-        if($(this).hasClass("ui-selected")){
-          $(this).removeClass("ui-selected");
-
-          //index to remove from array
-          //var index = $("#selectable li").index(this);
-          postTypesArray.splice( postTypesArray.indexOf($(this).attr("name")), 1 );
-        }else{
-          $(this).toggleClass("ui-selected");
-          postTypesArray.push($(this).attr("name"))
-        }       
-      });*/
   });
   </script>
 </head>
@@ -66,12 +31,13 @@
 
 <?php
   $arrayTypes = array();
+  $disabled=array("nav_menu_item",'customize_changeset','revision','custom_css','oembed_cache','user_request','wp_block');
   $types = get_post_types( [], 'objects' );
+  $selectedOptions=get_option('post_types_array');
     foreach ( $types as $type ) {
-      if ( isset( $type->name ) ) {
-        // you'll probably want to do something else.
-        // debug_func($type->name,"data".$type->name);
-        array_push($arrayTypes, $type->name);
+      if ( isset( $type->name ) &&  !in_array($type->name, $disabled) ) {
+        $currItem=array("name"=>$type->name,"selected"=>in_array($type->name, $selectedOptions));
+        array_push($arrayTypes, $currItem);
     }
   }
   
@@ -353,7 +319,7 @@ function echo_log( $what )
             <!--<li class="ui-widget-content">Item 1</li>-->
             <?php if(is_array($arrayTypes)): ?>
               <?php foreach($arrayTypes as $post_type): ?>
-                <li id="ui-widget" class="ui-widget-content" name=<?php echo $post_type ?>><?php echo $post_type ?></li>
+                <li id="ui-widget" class="ui-widget-content <?php  echo $post_type['selected']?"ui-selected":""; ?>" name=<?php echo $post_type['name'] ?>><?php echo $post_type['name'] ?></li>
               <?php endforeach; ?>
             <?php else : ?>
               <!--<li class="ui-widget-content"> execute sth here</li>-->
