@@ -45,32 +45,14 @@
   $actionStatus = 0;
   $actionCategoriesSyncStatus = 0;
   $post_types = get_option('post_types_array');
-  /*if(empty(get_option('post_types_array'))){
-    add_option('post_types_array', "post");
-  }else{
-    if(is_array(get_option('post_types_array'))){
-      $post_types = implode(",",get_option('post_types_array'));
-    }else{
-      $post_types = get_option('post_types_array');
-    }
-  }*/
-
+  
   /* Echo variable
- * Description: Uses <pre> and print_r to display a variable in formated fashion
- */
-function echo_log( $what )
-{
+   * Description: Uses <pre> and print_r to display a variable in formated fashion
+   */
+  function echo_log( $what ){
     echo '<pre>'.print_r( $what, true ).'</pre>';
-}
-  /*function getPostsByType($post_type){
-    if(is_array($post_type)){
-      //do sth
-    }else{
-      $args = array(  
-        'post_type' => $post_type
-      );
-    }
-  }*/
+  }
+
   function debug_funcc($data,$file="debug"){
     $myfile = fopen(__DIR__ .'/debug/'.$file.'.txt', 'w');
     //fwrite($myfile, json_encode( (array)$data ));
@@ -78,6 +60,10 @@ function echo_log( $what )
     fclose($myfile);
   }
 
+  /**
+   * Returning the post category by it's ID
+   * @param {Integer} post_id - post id 
+   */
   function getPostCategory2($post_id){
     global $wpdb;
   
@@ -99,13 +85,6 @@ function echo_log( $what )
       $postData['fields'][$key]=array("stringValue"=>$value.""); 
      }
 
-     //$postCategory = getPostCategory2($data['ID']);
-     
-     /*if(!empty($postCategory)){
-       //collection category reference
-      $postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
-     }*/
-     
     return $postData;
   }
   
@@ -148,6 +127,7 @@ function echo_log( $what )
     }
   }
 
+  //Synchronize all categories from database and check for their meta additional data
   function saveCategories2(){
     global $wpdb;
     
@@ -185,6 +165,10 @@ function echo_log( $what )
     }
   }
 
+  /**
+   * Returning all posts by post type that is selected
+   * @param {String} post type that is selected
+   */
   function getAllPostsByPostType($post_type){
     global $wpdb;
 
@@ -219,7 +203,7 @@ function echo_log( $what )
     $actionPostSyncStatus=1;
   }
 
-  //HANDLE POST REQUESTS
+  //HANDLE POST REQUEST
   if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if(!(empty($_POST["apikey"]) || empty($_POST["projectid"]) || empty($_POST["appid"]))){
         
@@ -228,33 +212,12 @@ function echo_log( $what )
       update_option('firebase_appid', $_POST["appid"]);
       update_option('firebase_authdomain', $_POST["projectid"] . ".firebaseapp.com");
       update_option('firebase_databaseurl', "https://" . $_POST["projectid"] . ".firebaseio.com");
-      
-      /*if(get_option('post_types_array') || $_COOKIE["postTypesArray"]){
-        if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
-          update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
-          //$post_types = implode(",",get_option('post_types_array'));
-        }else{
-          update_option('post_types_array',$_COOKIE["postTypesArray"]);
-          //$post_types = get_option('post_types_array');
-        }
-      }*/
-      
     }else{
       add_option('firebase_apikey', $_POST["apikey"]);
       add_option('firebase_projectid', $_POST["projectid"]);
       add_option('firebase_appid', $_POST["appid"]);
       add_option('firebase_authdomain', $_POST["projectid"] . ".firebaseapp.com");
       add_option('firebase_databaseurl', "https://" . $_POST["projectid"] . ".firebaseio.com");
-
-      /*if(get_option('post_types_array') || $_COOKIE["postTypesArray"]){
-        if(count(explode(",",$_COOKIE["postTypesArray"])) > 1){
-          update_option('post_types_array', explode(",",$_COOKIE["postTypesArray"]));
-          //$post_types = implode(",",get_option('post_types_array'));
-        }else{
-          update_option('post_types_array',$_COOKIE["postTypesArray"]);
-          //$post_types = get_option('post_types_array');
-        }
-      }*/
     }
     $actionStatus=1;
     //header("Refresh:0");
@@ -352,9 +315,6 @@ function echo_log( $what )
     <?php endif; ?>
     <br/>
     <?php endif; ?>
-
-    
-  
 </div>
 </body>
 </html>

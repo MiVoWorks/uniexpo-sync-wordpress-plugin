@@ -93,12 +93,6 @@ function wpDataToFirestoreData($data){
     $postData['fields'][$key]=array("stringValue"=>$value.""); 
    }
 
-   //$postCategory = getPostCategory($data['ID']);
-   //if(!empty($postCategory)){
-    //collection category reference
-    //$postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
-   //}
-
   return $postData;
 }
 
@@ -165,6 +159,7 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
     $postData=wpDataToFirestoreData($postData);
   }
 
+  //if it's post get post status and post category
   if(!$isCategory){
     //get post category
     $postStatus = $postData["fields"]["post_status"]['stringValue'];
@@ -176,12 +171,6 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
     }
     
   }
- 
-  /*if(!$isCategory){
-    $postCategory = getPostCategory($postData["fields"]["ID"]['stringValue']);
-    //collection category reference
-    $postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
-  }*/
   
   //if publish post
   if($action_type == "publish"){
@@ -225,6 +214,8 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
 
 /**
  * Synchronize post on publish new post
+ * @param {Integer} post_id
+ * @param {Object} post
  */
 function action_publish_post( $post_id, $post ) { 
 
@@ -253,6 +244,8 @@ function action_publish_post( $post_id, $post ) {
 
 /**
  * Synchronize post on update post
+ * @param {Integer} post_id
+ * @param {Object} post
  */
 function action_update_post($post_id, $post){
 
@@ -278,7 +271,11 @@ function action_update_post($post_id, $post){
   sendDataToFirestore((array) $post, true, $post->post_type, $post_id, "update", false);
 }
 
-
+/**
+ * Getting the meta additional information for added category and if there is data update to firestore
+ * @param {Integer} term_id 
+ * @param {Object} element 
+ */
 function checkMetaCategoryData($term_id, $element){
     global $wpdb;
     $query = "SELECT * FROM 
@@ -293,9 +290,7 @@ function checkMetaCategoryData($term_id, $element){
     $meta_categories = $wpdb->get_results($query);
     $changes_in_element = false;
     
-    $new_object_to_be_created = (object) [
-      //'element' => $element,
-    ];
+    $new_object_to_be_created = (object) [];
 
     foreach($element as $key => $value){
       $new_object_to_be_created->$key = $value; 
@@ -325,8 +320,11 @@ function action_create_category($term_id, $taxonomy_term_id){
   $query = "SELECT {$wpdb->prefix}terms.term_id, {$wpdb->prefix}terms.name, {$wpdb->prefix}term_taxonomy.taxonomy FROM {$wpdb->prefix}terms INNER JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}terms.term_id={$wpdb->prefix}term_taxonomy.term_id AND {$wpdb->prefix}terms.term_id='".$term_id."'";
 
   $element = $wpdb->get_results($query);
+
+  //save do database nessecary info
   sendDataToFirestore(wpDataToFirestoreData($element[0]),false,$element[0]->taxonomy,$term_id,"publish",true);
   
+  //check if there is any other meta data and update it the added category
   checkMetaCategoryData($term_id,$element[0]);
 }
 
@@ -357,6 +355,7 @@ function subscribeToDifferentPostTypes($postTypes){
   } 
 }
 
+//Checking all selected post types
 if(get_option('post_types_array')){
   subscribeToDifferentPostTypes(get_option('post_types_array'));
 }
