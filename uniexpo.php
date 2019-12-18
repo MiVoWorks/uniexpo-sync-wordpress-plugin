@@ -333,6 +333,12 @@ function action_delete_category($term_id, $taxonomy_term_id, $deleted_term){
   sendDataToFirestore(wpDataToFirestoreData($deleted_term),false,$deleted_term->taxonomy,$term_id,"delete",true);
 }
 
+//ON POST DELETE
+function action_delete_post($post_id){
+  $post = get_post($post_id);
+  sendDataToFirestore((array) $post, true, $post->post_type, $post_id, "delete", false);
+}
+
 function subscribeToDifferentPostTypes($postTypes){
   //check if postTypes is array
   if(is_array($postTypes)){
@@ -343,6 +349,9 @@ function subscribeToDifferentPostTypes($postTypes){
   
       //on post update
       add_action('save_'.$type, 'action_update_post', 10, 3);
+
+      //on delete post permanently
+      add_action( 'delete_'.$type, 'action_delete_post', 10, 2); 
     }
   //check if postTypes is string -> only one postTypes
   }else{
@@ -352,6 +361,9 @@ function subscribeToDifferentPostTypes($postTypes){
  
      //on post update
      add_action('save_'.$postTypes, 'action_update_post', 10, 3);
+
+     //on delete post permanently
+     add_action( 'delete_'.$type, 'action_delete_post', 10, 2);
   } 
 }
 

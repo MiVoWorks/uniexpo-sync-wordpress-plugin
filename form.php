@@ -12,7 +12,6 @@
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
   <script>
   $( function() {
-     
       $(".ui-widget-content").click( function() {
         $(this).toggleClass("ui-selected");
         $.ajax({
