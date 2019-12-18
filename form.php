@@ -292,12 +292,11 @@
               <!--<li class="ui-widget-content"> execute sth here</li>-->
             <?php endif; ?>
           </ol>
-          <p class="description" id="tagline-description">Select one of the post types below.</p>
+          <p class="description" id="tagline-description">Select one of the post types below to start sync the data.</p>
         </td>
       </tr>
     </table>
     </form>
-    <?php if(!empty(get_option('post_types_array'))): ?>
       <h2>Initial Full sync</h2>
       <hr/>
     <table class="form-table" role="presentation">
@@ -311,7 +310,6 @@
         </td>
       </tr>
     </table>
-    <?php endif; ?>
     <br/>
     <?php endif; ?>
 </div>
