@@ -189,6 +189,12 @@
         $posts = getAllPostsByPostType($type);
         
         foreach ($posts as $post_key => $post){
+          //if is ID of author return his display name
+          if(intval($post->post_author)){
+            $author = get_userdata($post->post_author);
+            $post->post_author = $author->display_name;
+          }
+
           sendDataToFirestore2((array) $post, true, $post->post_type, $post->ID, "publish", false);
         }
       }
@@ -196,6 +202,12 @@
     }else{
       $posts = getAllPostsByPostType($post_types);
       foreach ($posts as $post_key => $post){
+        //if is ID of author return his display name
+        if(intval($post->post_author)){
+          $author = get_userdata($post->post_author);
+          $post->post_author = $author->display_name;
+        }
+        
         sendDataToFirestore2((array) $post, true, $post->post_type, $post->ID, "publish", false);
       }
     }
