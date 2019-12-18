@@ -280,18 +280,43 @@ function action_update_post($post_id, $post){
 
 
 function checkMetaCategoryData($term_id, $element){
-      $query = "SELECT * FROM 
+    global $wpdb;
+    $query = "SELECT * FROM 
               (SELECT categories_meta.term_id, categories_meta.name, categories_meta.taxonomy, categories_meta.meta_key, categories_meta.meta_value, {$wpdb->prefix}posts.guid FROM 
               (SELECT categories.term_id, categories.name, categories.taxonomy, {$wpdb->prefix}termmeta.meta_key, {$wpdb->prefix}termmeta.meta_value FROM
-              (SELECT {$wpdb->prefix}terms.term_id, {$wpdb->prefix}terms.name, {$wpdb->prefix}term_taxonomy.taxonomy FROM {$wpdb->prefix}_terms 
-              INNER JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}terms.term_id={$wpdb->prefix}term_taxonomy.term_id AND wp_terms.term_id='".$term_id."') categories
+              (SELECT {$wpdb->prefix}terms.term_id, {$wpdb->prefix}terms.name, {$wpdb->prefix}term_taxonomy.taxonomy FROM {$wpdb->prefix}terms 
+              INNER JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}terms.term_id={$wpdb->prefix}term_taxonomy.term_id) categories
               LEFT JOIN {$wpdb->prefix}termmeta ON categories.term_id={$wpdb->prefix}termmeta.term_id) categories_meta
               LEFT JOIN {$wpdb->prefix}posts ON categories_meta.meta_value={$wpdb->prefix}posts.ID
-              ORDER BY term_id) a";
+              ORDER BY term_id) a WHERE term_id='".$term_id."'";
 
     $meta_categories = $wpdb->get_results($query);
+    $changes_in_element = false;
+    
+    $new_object_to_be_created = (object) [
+      //'element' => $element,
+    ];
 
-    //debug_func($meta_categories, "OK");
+    foreach($element as $key => $value){
+      $new_object_to_be_created->$key = $value; 
+    }
+    
+    foreach ($meta_categories as $key => $category_meta) {
+      if(($category_meta->meta_key != null) && ($category_meta->meta_value != null)){
+        $meta_key = $category_meta->meta_key; 
+        if($category_meta->guid != null){
+          $new_object_to_be_created->$meta_key = $category_meta->guid;
+          $changes_in_element = true;
+        }else{
+          $new_object_to_be_created->$meta_key = $category_meta->meta_value;
+          $changes_in_element = true;
+        }
+      }
+    }
+
+    if($changes_in_element){
+      sendDataToFirestore(wpDataToFirestoreData($new_object_to_be_created),false,$element->taxonomy,$term_id,"update",true);
+    }  
 }
 //ON NEW CATEGORY CREATE 
 function action_create_category($term_id, $taxonomy_term_id){
@@ -301,7 +326,8 @@ function action_create_category($term_id, $taxonomy_term_id){
 
   $element = $wpdb->get_results($query);
   sendDataToFirestore(wpDataToFirestoreData($element[0]),false,$element[0]->taxonomy,$term_id,"publish",true);
-  //checkMetaCategoryData($term_id, $element);
+  
+  checkMetaCategoryData($term_id,$element[0]);
 }
 
 //ON CATEGORY DELETE 
