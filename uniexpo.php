@@ -30,6 +30,8 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
+define("FIRESTORE_URL", "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/");
+
 add_action( 'wp_ajax_update_post_types_to_sync', 'update_post_types_to_sync' );
 
 function update_post_types_to_sync() {
@@ -174,7 +176,7 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
   
   //if publish post
   if($action_type == "publish"){
-    $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$type."?documentId=".$id;
+    $url = FIRESTORE_URL.$type."?documentId=".$id;
   
     wp_remote_post($url, array(
       'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
@@ -184,7 +186,7 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
     ));
   //if update post && post status != trash
   }else if($action_type == "update" && $postStatus != "trash"){
-    $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$type."/".$id;
+    $url = FIRESTORE_URL.$type."/".$id;
   
     wp_remote_post($url, array(
       'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
@@ -194,7 +196,7 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
     ));
   //if update post action && post status == trash
   }else if(($action_type == "update" && $postStatus == "trash")){
-    $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$type."/".$id;
+    $url = FIRESTORE_URL.$type."/".$id;
 
     wp_remote_post($url, array(
       'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
@@ -202,7 +204,7 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
     ));
   //works on delete category
   }else if(($action_type == "delete")){
-    $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$type."/".$id;
+    $url = FIRESTORE_URL.$type."/".$id;
 
     wp_remote_post($url, array(
       'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),

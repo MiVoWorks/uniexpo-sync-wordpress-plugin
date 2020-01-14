@@ -29,6 +29,8 @@
 <body>  
 
 <?php
+  define("FIRESTORE_URL", "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/");
+
   $arrayTypes = array();
   $disabled=array("nav_menu_item",'customize_changeset','revision','custom_css','oembed_cache','user_request','wp_block');
   $types = get_post_types( [], 'objects' );
@@ -105,7 +107,7 @@
     }  
     //if publish post
     if($action_type == "publish"){
-      $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$type."?documentId=".$id;
+      $url = FIRESTORE_URL.$type."?documentId=".$id;
     
       wp_remote_post($url, array(
         'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
@@ -115,7 +117,7 @@
       ));
     //if update post
     }else if($action_type == "update"){
-      $url = "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/".$type."/".$id;
+      $url = FIRESTORE_URL.$type."/".$id;
     
       wp_remote_post($url, array(
         'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
