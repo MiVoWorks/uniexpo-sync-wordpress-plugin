@@ -104,7 +104,7 @@ function getPostCategory($post_id){
 
   $query = "SELECT * FROM (SELECT * FROM(SELECT meta_id,post_id FROM {$wpdb->prefix}postmeta WHERE post_id=".$post_id.") a
             INNER JOIN {$wpdb->prefix}term_relationships ON {$wpdb->prefix}term_relationships.object_id = a.post_id) b
-            INNER JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}term_taxonomy.term_taxonomy_id = b.term_taxonomy_id LIMIT 1";
+            INNER JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}term_taxonomy.term_taxonomy_id = b.term_taxonomy_id GROUP BY {$wpdb->prefix}term_taxonomy.taxonomy";
 
   $category = $wpdb->get_results($query);
   
