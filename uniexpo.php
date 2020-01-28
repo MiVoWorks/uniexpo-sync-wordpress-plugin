@@ -31,6 +31,7 @@ if ( ! defined( 'WPINC' ) ) {
 }
 
 define("FIRESTORE_URL", "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/");
+define("FIRESTORE_PROJECT_URL", "projects/".get_option('firebase_projectid')."/databases/(default)/documents/");
 
 add_action( 'wp_ajax_update_post_types_to_sync', 'update_post_types_to_sync' );
 
@@ -168,9 +169,22 @@ function sendDataToFirestore($postData, $shouldIDoAConversion=true, $type, $id, 
 
     $postCategory = getPostCategory($postData["fields"]["ID"]['stringValue']);
     if(!empty($postCategory)){
+      if(count($postCategory) > 1){
+        foreach($postCategory as $key => $obj){
+          //debug_func($obj, $obj->meta_id);
+          //$postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$obj->taxonomy."/".$obj->term_id);
+          $postData['fields']['collection_'.$obj->taxonomy]=array("referenceValue"=>FIRESTORE_PROJECT_URL.$obj->taxonomy."/".$obj->term_id);
+        }
+      }else{
+        //collection category reference
+        //$postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
+        $postData['fields']['collection_'.$postCategory[0]->taxonomy]=array("referenceValue"=>FIRESTORE_PROJECT_URL.$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
+      }
+    }
+    /*if(!empty($postCategory)){
       //collection category reference 
       $postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
-    }
+    }*/
     
   }
   
