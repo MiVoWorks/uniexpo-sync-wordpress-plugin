@@ -29,8 +29,8 @@
 <body>  
 
 <?php
-  define("FIRESTORE_URL", "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/");
-  define("FIRESTORE_PROJECT_URL", "projects/".get_option('firebase_projectid')."/databases/(default)/documents/");
+  define("FIRESTORE_URL2", "https://firestore.googleapis.com/v1/projects/".get_option('firebase_projectid')."/databases/(default)/documents/");
+  define("FIRESTORE_PROJECT_URL2", "projects/".get_option('firebase_projectid')."/databases/(default)/documents/");
 
   $arrayTypes = array();
   $disabled=array("nav_menu_item",'customize_changeset','revision','custom_css','oembed_cache','user_request','wp_block');
@@ -107,12 +107,12 @@
           foreach($postCategory as $key => $obj){
             //debug_func($obj, $obj->meta_id);
             //$postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$obj->taxonomy."/".$obj->term_id);
-            $postData['fields']['collection_'.$obj->taxonomy]=array("referenceValue"=>FIRESTORE_PROJECT_URL.$obj->taxonomy."/".$obj->term_id);
+            $postData['fields']['collection_'.$obj->taxonomy]=array("referenceValue"=>FIRESTORE_PROJECT_URL2.$obj->taxonomy."/".$obj->term_id);
           }
         }else{
           //collection category reference
           //$postData['fields']['collection']=array("referenceValue"=>"projects/mytestexample-d5aaa/databases/(default)/documents/".$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
-          $postData['fields']['collection_'.$postCategory[0]->taxonomy]=array("referenceValue"=>FIRESTORE_PROJECT_URL.$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
+          $postData['fields']['collection_'.$postCategory[0]->taxonomy]=array("referenceValue"=>FIRESTORE_PROJECT_URL2.$postCategory[0]->taxonomy."/".$postCategory[0]->term_id);
         }
       }
       /*if(!empty($postCategory)){
@@ -122,7 +122,7 @@
     }  
     //if publish post
     if($action_type == "publish"){
-      $url = FIRESTORE_URL.$type."?documentId=".$id;
+      $url = FIRESTORE_URL2.$type."?documentId=".$id;
     
       wp_remote_post($url, array(
         'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
@@ -132,7 +132,7 @@
       ));
     //if update post
     }else if($action_type == "update"){
-      $url = FIRESTORE_URL.$type."/".$id;
+      $url = FIRESTORE_URL2.$type."/".$id;
     
       wp_remote_post($url, array(
         'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
