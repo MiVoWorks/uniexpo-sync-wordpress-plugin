@@ -271,6 +271,18 @@
   </div>
   <?php } ?>
   <br/>
+  <h2>Firebase Service Account</h2>
+  <hr/>
+  <form action="<?php echo admin_url('admin-ajax.php')?>" method="post" enctype="multipart/form-data">
+      <?php wp_nonce_field('submit_content','my_nonce_field'); ?>
+      <p>
+        <input type='file' name='service_account_json'>
+      </p>
+      <p class="submit">
+        <input type='hidden' name='action' value='submit_content'>
+        <input type='submit' class="button button-primary" value='Submit Content'>
+      </p>
+  </form>
   <h2>Firebase Project Settings</h2>
   <hr/>
   <form method="post" action="admin.php?page=uniexpo-plugin" novalidate="novalidate">
@@ -326,8 +338,8 @@
       </tr>
     </table>
     </form>
-      <h2>Initial Full sync</h2>
-      <hr/>
+    <h2>Initial Full sync</h2>
+    <hr/>
     <table class="form-table" role="presentation">
       <tr>
         <td>

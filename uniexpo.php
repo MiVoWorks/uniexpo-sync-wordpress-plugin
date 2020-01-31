@@ -77,9 +77,28 @@ function update_post_types_to_sync() {
 	wp_die(); // this is required to terminate immediately and return a proper response
 }
 
+add_action('wp_ajax_nopriv_submit_content', 'my_submission_processor');
+add_action('wp_ajax_submit_content', 'my_submission_processor');
 
 
+function my_submission_processor() {
+  //$uploadedfile = $_FILES['service_account_json']['name'];
+  //$upload_overrides = array('test_form' => false);
+  //$movefile = wp_handle_upload($uploadedfile,  $upload_overrides);
+  /*if ($movefile && !isset($movefile['error'])) {
+    debug_func("succes","OK");
+  }*/
+  if(is_uploaded_file($_FILES["service_account_json"]["tmp_name"])){
+    move_uploaded_file($_FILES["service_account_json"]["tmp_name"],ABSPATH.'/wp-content/uploads/'.basename($_FILES["service_account_json"]["name"]));
+    $file = fopen(ABSPATH.'/wp-content/uploads/'.basename($_FILES["service_account_json"]["name"]), "r");
+    debug_func(fread($file, filesize(ABSPATH.'/wp-content/uploads/'.basename($_FILES["service_account_json"]["name"]))),"OK");
+  }
+  
 
+  wp_redirect( site_url() . '/wp-admin/admin.php?page=uniexpo-plugin' );
+	die();
+}
+	
 function debug_func($data,$file="debug"){
   $myfile = fopen(__DIR__ .'/debug/'.$file.'.txt', 'w');
   //fwrite($myfile, json_encode( (array)$data ));
@@ -405,7 +424,7 @@ function addMenu(){
 
 function UniExpoMenu(){
 	include_once('form.php');
-}
+} 
 
 /**
  * Currently plugin version.
